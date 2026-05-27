@@ -1,0 +1,24 @@
+# Auto-request reviews based on changed paths.
+# Each line: <pattern> <owner1> <owner2>
+# Replace handles with real GitHub usernames before pushing.
+
+# Default catch-all: everyone reviews changes outside owned dirs.
+*                                       @kautilya @vedant @sidney
+
+# Chat service and sync job
+/chat-service/                          @kautilya
+/sync-job/                              @kautilya
+
+# Integrations
+/shared/molli_shared/clients/freshservice.py    @vedant
+/shared/molli_shared/clients/google_chat.py     @vedant
+/shared/molli_shared/clients/google_workspace.py @vedant
+/shared/molli_shared/clients/document360.py     @kautilya
+
+# Security, guardrails, CI/CD, infra
+/shared/molli_shared/guardrails/        @sidney
+/infra/                                 @sidney @vedant
+/.github/workflows/                     @sidney
+
+# Docs
+/docs/                                  @vedant
