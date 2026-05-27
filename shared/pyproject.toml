@@ -1,0 +1,18 @@
+[project]
+name = "molli-shared"
+version = "0.1.0"
+description = "Shared clients, schemas, and guardrails for Molli"
+requires-python = ">=3.12"
+dependencies = [
+    "pydantic>=2.7",
+    "httpx>=0.27",
+    "google-cloud-secret-manager>=2.20",
+    "structlog>=24.1",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["molli_shared"]
