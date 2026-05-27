@@ -1,0 +1,46 @@
+name: Ticket Investigation
+description: Audit recurring tickets for one department to seed Molli's knowledge priorities
+title: "[Investigation] <Department> ticket audit"
+labels: ["type:spike", "phase:0-foundations"]
+body:
+  - type: dropdown
+    id: department
+    attributes:
+      label: Department
+      options:
+        - Operations
+        - Human Resources
+        - Information Technology
+    validations:
+      required: true
+  - type: input
+    id: sme
+    attributes:
+      label: SME contact(s)
+      description: From the kickoff deck slide 12.
+      placeholder: e.g. Lane Sheer, Toni Yrlas
+    validations:
+      required: true
+  - type: checkboxes
+    id: steps
+    attributes:
+      label: Steps
+      options:
+        - label: Pull 90-day Freshservice ticket export for this department
+        - label: Cluster by subject line; identify top 10 repeating request types
+        - label: Interview SME(s) to validate clusters and surface undocumented knowledge
+        - label: For each cluster, mark Molli-resolvable vs needs-human, and exists-in-D360 vs needs-new-content
+        - label: Tag any clusters with guardrail relevance (FCRA, FHA, OSHA, MH)
+        - label: Add findings to `docs/ticket-investigation.md` under the department section
+  - type: textarea
+    id: deliverable
+    attributes:
+      label: Deliverable
+      value: |
+        Findings added to `docs/ticket-investigation.md`, including:
+        - Top 10 clusters with example subjects
+        - % estimated resolvable by Molli
+        - List of D360 articles to create or improve
+        - Guardrail mapping notes
+    validations:
+      required: true

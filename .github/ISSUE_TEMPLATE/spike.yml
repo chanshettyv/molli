@@ -1,0 +1,28 @@
+name: Spike
+description: Time-boxed research or investigation to answer a question
+title: "[Spike] "
+labels: ["type:spike"]
+body:
+  - type: textarea
+    id: question
+    attributes:
+      label: Question to answer
+      description: What are we trying to learn or decide?
+    validations:
+      required: true
+  - type: input
+    id: timebox
+    attributes:
+      label: Timebox
+      description: How long are we willing to spend? (e.g. 4 hours, 1 day, 2 days)
+      placeholder: 1 day
+    validations:
+      required: true
+  - type: textarea
+    id: deliverable
+    attributes:
+      label: Deliverable
+      description: What will we produce? Usually a doc in `/docs` or a decision recorded in an ADR.
+      placeholder: e.g. doc at docs/decisions/2026-XX-vector-search.md with a recommendation
+    validations:
+      required: true
