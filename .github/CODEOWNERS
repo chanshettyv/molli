@@ -3,22 +3,22 @@
 # Replace handles with real GitHub usernames before pushing.
 
 # Default catch-all: everyone reviews changes outside owned dirs.
-*                                       @kautilya @vedant @sidney
+*                                       @KautilyaChopra @chanshettyv @SidneyRoss8
 
 # Chat service and sync job
-/chat-service/                          @kautilya
-/sync-job/                              @kautilya
+/chat-service/                          @KautilyaChopra
+/sync-job/                              @KautilyaChopra
 
 # Integrations
-/shared/molli_shared/clients/freshservice.py    @vedant
-/shared/molli_shared/clients/google_chat.py     @vedant
-/shared/molli_shared/clients/google_workspace.py @vedant
-/shared/molli_shared/clients/document360.py     @kautilya
+/shared/molli_shared/clients/freshservice.py    @chanshettyv
+/shared/molli_shared/clients/google_chat.py     @chanshettyv
+/shared/molli_shared/clients/google_workspace.py @chanshettyv
+/shared/molli_shared/clients/document360.py     @KautilyaChopra
 
 # Security, guardrails, CI/CD, infra
-/shared/molli_shared/guardrails/        @sidney
-/infra/                                 @sidney @vedant
-/.github/workflows/                     @sidney
+/shared/molli_shared/guardrails/        @SidneyRoss8
+/infra/                                 @SidneyRoss8 @chanshettyv
+/.github/workflows/                     @SidneyRoss8
 
 # Docs
-/docs/                                  @vedant
+/docs/                                  @chanshettyv
