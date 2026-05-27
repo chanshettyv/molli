@@ -1,0 +1,50 @@
+name: Bug
+description: Something is broken or behaving unexpectedly
+title: "[Bug] "
+labels: ["type:bug"]
+body:
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: What's wrong, in one or two sentences?
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Repro steps
+      value: |
+        1.
+        2.
+        3.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs / screenshots
+      description: Cloud Logging query, error message, or screenshot if relevant.
+  - type: dropdown
+    id: severity
+    attributes:
+      label: Severity
+      options:
+        - p0 - production down or data loss
+        - p1 - feature broken, no workaround
+        - p2 - feature broken, workaround exists
+        - p3 - minor or cosmetic
+    validations:
+      required: true

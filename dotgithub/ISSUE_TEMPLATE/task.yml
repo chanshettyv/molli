@@ -1,0 +1,32 @@
+name: Task
+description: A chore, refactor, or setup task with no user-facing behavior
+title: "[Task] "
+labels: ["type:chore"]
+body:
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: What needs to be done?
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Done when
+      value: |
+        - [ ]
+        - [ ]
+    validations:
+      required: true
+  - type: dropdown
+    id: role
+    attributes:
+      label: Primary role
+      options:
+        - AI-Backend
+        - Integrations
+        - Security-QA
+        - Shared
+    validations:
+      required: true

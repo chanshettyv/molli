@@ -1,0 +1,57 @@
+name: Feature
+description: A new capability or user-facing behavior
+title: "[Feature] "
+labels: ["type:feature"]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What
+      description: What are we building, in one or two sentences?
+      placeholder: e.g. Molli should cite the source Document360 article whenever it answers a knowledge question.
+    validations:
+      required: true
+  - type: textarea
+    id: why
+    attributes:
+      label: Why
+      description: Why does this matter? Tie to a metric, guardrail, or user need from the kickoff deck if possible.
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      description: Checklist of things that must be true for this to be done.
+      value: |
+        - [ ]
+        - [ ]
+        - [ ]
+    validations:
+      required: true
+  - type: textarea
+    id: out-of-scope
+    attributes:
+      label: Out of scope
+      description: What this issue is NOT doing. Prevents scope creep.
+  - type: dropdown
+    id: phase
+    attributes:
+      label: Phase
+      options:
+        - "Phase 0 - Foundations"
+        - "Phase 1 - Core Bot"
+        - "Phase 2 - Polish and Launch"
+    validations:
+      required: true
+  - type: dropdown
+    id: role
+    attributes:
+      label: Primary role
+      options:
+        - AI-Backend
+        - Integrations
+        - Security-QA
+        - Shared
+    validations:
+      required: true
