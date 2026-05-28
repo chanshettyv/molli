@@ -59,4 +59,4 @@ Secrets live in GCP Secret Manager, never in `.env`. See `docs/runbook.md` for h
 
 ## Status
 
-In Phase 0 (Foundations). See the [project board](https://github.com/<your-org>/molli/projects) for current sprint.
+In Phase 0 (Foundations). See the [project board](https://github.com/chanshettyv/molli/projects) for current sprint.

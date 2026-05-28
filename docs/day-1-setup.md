@@ -5,7 +5,7 @@ For Kautilya, Vedant, and Sidney to do on the first day.
 ## Before you start
 
 You'll need:
-- A GitHub account with access to the `<your-org>` org
+- A GitHub account with access to the `chanshettyv` org
 - `gcloud` installed (https://cloud.google.com/sdk/docs/install)
 - Python 3.12 and `uv` (https://docs.astral.sh/uv/)
 - Docker (for local container builds later)
@@ -13,7 +13,7 @@ You'll need:
 ## Step 1: Clone and bootstrap
 
 ```bash
-git clone https://github.com/<your-org>/molli.git
+git clone https://github.com/chanshettyv/molli.git
 cd molli
 bash scripts/bootstrap.sh
 ```
@@ -30,7 +30,7 @@ Both tests in `chat-service/tests/test_smoke.py` should pass.
 
 ## Step 3: Set up GitHub access
 
-Make sure your GitHub username is in `.github/CODEOWNERS`. Currently placeholders (`@kautilya`, `@vedant`, `@sidney`) — replace with your real handles in a quick PR.
+Make sure your GitHub username is in `.github/CODEOWNERS`. Currently placeholders (`@KautilyaChopra`, `@chanshettyv`, `@SidneyRoss8`) — replace with your real handles in a quick PR.
 
 ## Step 4: Get GCP access (Sidney to coordinate)
 
@@ -40,7 +40,7 @@ Make sure your GitHub username is in `.github/CODEOWNERS`. Currently placeholder
 
 ## Step 5: Pick up your first issues
 
-Open the [project board](https://github.com/<your-org>/molli/projects). The backlog is seeded with Phase 0 work.
+Open the [project board](https://github.com/chanshettyv/molli/projects). The backlog is seeded with Phase 0 work.
 
 Today specifically, each of you owns one ticket investigation:
 - Vedant: Operations (Lane Sheer, Toni Yrlas)
