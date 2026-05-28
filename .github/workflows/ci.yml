@@ -20,7 +20,7 @@ jobs:
         run: uv python install 3.12
 
       - name: Install dependencies
-        run: uv sync --all-packages
+        run: uv sync --all-packages --frozen
 
       - name: Lint (ruff check)
         run: uv run ruff check .
@@ -36,10 +36,10 @@ jobs:
 
       - name: Coverage gate
         run: |
-          # Phase 0: warn only. Tighten to fail < 80% before Phase 3.
           uv run python -c "
           import xml.etree.ElementTree as ET
           root = ET.parse('coverage.xml').getroot()
           rate = float(root.get('line-rate', 0)) * 100
           print(f'Coverage: {rate:.1f}%')
+          assert rate >= 80.0, f'Coverage gate failed: {rate:.1f}% < 80.0%'
           "

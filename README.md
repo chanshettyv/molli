@@ -47,7 +47,7 @@ See [`CONTRIBUTING.md`](CONTRIBUTING.md) for ownership boundaries, sprint cadenc
 # Prereqs: Python 3.12, uv (https://docs.astral.sh/uv/), gcloud, terraform
 git clone <repo-url>
 cd molli
-uv sync                         # installs all three packages and dev deps
+uv sync --all-packages          # installs all three packages and dev deps
 gcloud auth application-default login
 cp .env.example .env            # then fill in non-secret config
 

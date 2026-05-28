@@ -11,7 +11,7 @@ if ! command -v uv >/dev/null 2>&1; then
 fi
 
 echo "==> Installing Python deps"
-uv sync
+uv sync --all-packages
 
 echo "==> Installing pre-commit hooks"
 uv run pre-commit install

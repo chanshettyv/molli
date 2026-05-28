@@ -69,7 +69,7 @@ test: add guardrail unit tests for FCRA refusal
 Use `uv` (https://docs.astral.sh/uv/).
 
 ```bash
-uv sync                          # at the repo root, installs everything
+uv sync --all-packages           # at the repo root, installs everything
 uv run pytest                    # run all tests
 uv run ruff check .              # lint
 uv run ruff format .             # format

@@ -23,6 +23,7 @@ The bootstrap script installs Python deps, sets up pre-commit hooks, and creates
 ## Step 2: Smoke test
 
 ```bash
+uv sync --all-packages
 uv run pytest
 ```
 
