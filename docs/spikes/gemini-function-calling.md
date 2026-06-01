@@ -1,8 +1,7 @@
 # Spike: Gemini 1.5 Pro function calling
 
 **Author:** Kautilya  
-**Sprint:** 1  
-**Issue:** #[your issue number]  
+**Sprint:** 1    
 **Status:** Complete  
 
 ---
