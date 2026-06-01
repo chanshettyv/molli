@@ -33,7 +33,7 @@ from vertexai.generative_models import (
 # ---------------------------------------------------------------------------
 PROJECT_ID = "molli-dev"   # or your personal GCP project ID
 LOCATION = "us-central1"
-MODEL = "gemini-2.0-flash-001"
+MODEL = "gemini-2.5-flash"
 
 # ---------------------------------------------------------------------------
 # Fake knowledge base — hard-coded stand-in for Document360 / Vector Search

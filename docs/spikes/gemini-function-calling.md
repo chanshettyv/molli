@@ -96,7 +96,7 @@ Pass the tool to the model at construction time, not per-request:
 
 ```python
 model = GenerativeModel(
-    model_name="gemini-2.0-flash-001",
+    model_name="gemini-2.5-flash",
     tools=[KB_TOOL],
     system_instruction="You are Molli ...",
 )
