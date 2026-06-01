@@ -15,7 +15,6 @@ env/
 coverage.xml
 htmlcov/
 
-# uv
 
 # Env / secrets
 .env
