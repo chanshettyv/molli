@@ -19,6 +19,7 @@ class Settings(BaseModel):
     document360_secret_name: str = "document360-api-key"
     freshservice_api_secret_name: str = "freshservice-api-key"
     freshservice_domain: str
+    vector_index_id: str | None = None
     vector_index_endpoint: str | None = None
     firestore_database: str = "(default)"
 
@@ -30,6 +31,7 @@ def get_settings() -> Settings:
         gcp_region=os.environ.get("GCP_REGION", "us-central1"),
         environment=os.environ.get("ENVIRONMENT", "dev"),
         freshservice_domain=os.environ.get("FRESHSERVICE_DOMAIN", "preiss"),
+        vector_index_id=os.environ.get("VECTOR_INDEX_ID"),
         vector_index_endpoint=os.environ.get("VECTOR_INDEX_ENDPOINT"),
     )
 
