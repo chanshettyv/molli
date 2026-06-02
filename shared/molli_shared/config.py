@@ -8,6 +8,7 @@ from __future__ import annotations
 import os
 from functools import lru_cache
 
+from dotenv import load_dotenv
 from google.cloud import secretmanager
 from pydantic import BaseModel
 
@@ -18,18 +19,30 @@ class Settings(BaseModel):
     environment: str = "dev"  # dev or prod
     document360_secret_name: str = "document360-api-key"
     freshservice_api_secret_name: str = "freshservice-api-key"
-    freshservice_domain: str
+    freshservice_domain: str  # e.g. "tpco-org" — see freshservice_base_url
     vector_index_endpoint: str | None = None
     firestore_database: str = "(default)"
+
+    @property
+    def freshservice_base_url(self) -> str:
+        """Full base URL for Freshservice API.
+
+        Constructed from the per-tenant domain. The custom support portal
+        domain (support.preisscentral.com) is UI-only and does NOT serve the
+        API — confirmed during the Postman spike. Always use the underlying
+        *.freshservice.com hostname.
+        """
+        return f"https://{self.freshservice_domain}.freshservice.com/api/v2"
 
 
 @lru_cache
 def get_settings() -> Settings:
+    load_dotenv()  # only reads .env on first call, so safe to call multiple times
     return Settings(
         gcp_project_id=os.environ["GCP_PROJECT_ID"],
         gcp_region=os.environ.get("GCP_REGION", "us-central1"),
         environment=os.environ.get("ENVIRONMENT", "dev"),
-        freshservice_domain=os.environ.get("FRESHSERVICE_DOMAIN", "preiss"),
+        freshservice_domain=os.environ.get("FRESHSERVICE_DOMAIN", "tpco-org"),
         vector_index_endpoint=os.environ.get("VECTOR_INDEX_ENDPOINT"),
     )
 
