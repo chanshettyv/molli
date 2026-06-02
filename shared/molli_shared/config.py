@@ -47,10 +47,8 @@ def get_settings() -> Settings:
         gcp_project_number=os.environ["GCP_PROJECT_NUMBER"],
         gcp_region=os.environ.get("GCP_REGION", "us-central1"),
         environment=os.environ.get("ENVIRONMENT", "dev"),
-        freshservice_domain=os.environ.get("FRESHSERVICE_DOMAIN", "preiss"),
         vector_index_id=os.environ.get("VECTOR_INDEX_ID"),
         freshservice_domain=os.environ.get("FRESHSERVICE_DOMAIN", "tpco-org"),
-        vector_index_id=os.environ.get("VECTOR_INDEX_ID"),
         vector_index_endpoint=os.environ.get("VECTOR_INDEX_ENDPOINT"),
     )
 
