@@ -19,6 +19,7 @@ Prerequisites:
 """
 
 import json
+
 import vertexai
 from vertexai.generative_models import (
     Content,
@@ -31,7 +32,7 @@ from vertexai.generative_models import (
 # ---------------------------------------------------------------------------
 # Configuration — swap PROJECT_ID for molli-dev once Sidney provisions it
 # ---------------------------------------------------------------------------
-PROJECT_ID = "molli-dev"   # or your personal GCP project ID
+PROJECT_ID = "molli-dev"  # or your personal GCP project ID
 LOCATION = "us-central1"
 MODEL = "gemini-2.5-flash"
 
