@@ -10,7 +10,7 @@ on:
   workflow_dispatch:
 
 env:
-  PROJECT_ID: molli-prod
+  PROJECT_ID: molli-dev
   REGION: us-central1
   SERVICE: molli-chat-service
   REPO: molli
