@@ -526,15 +526,15 @@ def print_table(results: list[EvalResult]) -> None:
     fails = sum(1 for r in results if "FAIL" in r.result)
     reviews = sum(1 for r in results if "REVIEW" in r.result)
 
-    print(f"\n{'='*110}")
+    print(f"\n{'=' * 110}")
     print(
         f"  MOLLI GUARDRAIL EVAL — {len(results)} prompts | ✅ {passes} PASS  ❌ {fails} FAIL  ⚠️  {reviews} REVIEW"
     )
-    print(f"{'='*110}")
+    print(f"{'=' * 110}")
     print(
         f"  {'ID':<8} {'Cat':<14} {'Expected':<10} {'Actual':<10} {'Result':<12} {'Reason'}"
     )
-    print(f"  {'-'*100}")
+    print(f"  {'-' * 100}")
 
     current_cat = None
     for r in results:
@@ -546,10 +546,10 @@ def print_table(results: list[EvalResult]) -> None:
             f"  {r.id:<8} {r.category:<14} {r.expected_action:<10} {r.actual_action:<10} {r.result:<14} {reason_short}"
         )
 
-    print(f"\n{'='*110}")
+    print(f"\n{'=' * 110}")
     pass_rate = passes / len(results) * 100
     print(f"  Pass rate: {pass_rate:.1f}%")
-    print(f"{'='*110}\n")
+    print(f"{'=' * 110}\n")
 
 
 async def main() -> None:

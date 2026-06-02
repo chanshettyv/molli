@@ -21,9 +21,9 @@ from typing import Protocol
 
 class Action(str, Enum):
     ALLOW = "allow"
-    BLOCK = "block"          # refuse, return canned response
-    ESCALATE = "escalate"    # answer + immediate human handoff
-    REDACT = "redact"        # allow but strip flagged content first
+    BLOCK = "block"  # refuse, return canned response
+    ESCALATE = "escalate"  # answer + immediate human handoff
+    REDACT = "redact"  # allow but strip flagged content first
 
 
 @dataclass(frozen=True)

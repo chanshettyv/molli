@@ -32,14 +32,11 @@ jobs:
           service_account: ${{ secrets.GCP_DEPLOY_SA }}
 
       - uses: google-github-actions/setup-gcloud@v2
-      - name: Deploy Cloud Run job
+
+      - name: Resolve project number
         run: |
-          gcloud run jobs deploy ${{ env.JOB }} \
-            --image=$IMAGE \
-            --region=${{ env.REGION }} \
-            --service-account=${{ secrets.GCP_RUNTIME_SA }} \
-            --max-retries=1 \
-            --set-env-vars=GCP_PROJECT_ID=${{ env.PROJECT_ID }},GCP_PROJECT_NUMBER=$PROJECT_NUMBER,ENVIRONMENT=${{ env.ENVIRONMENT }}
+          PROJECT_NUMBER=$(gcloud projects describe ${{ env.PROJECT_ID }} --format='value(projectNumber)')
+          echo "PROJECT_NUMBER=$PROJECT_NUMBER" >> $GITHUB_ENV
 
       - name: Configure Docker
         run: gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev
@@ -54,7 +51,8 @@ jobs:
       - name: Deploy Cloud Run job
         run: |
           gcloud run jobs deploy ${{ env.JOB }} \
-            --image=$IMAGE \
+            --image=${{ env.IMAGE }} \
             --region=${{ env.REGION }} \
             --service-account=${{ secrets.GCP_RUNTIME_SA }} \
-            --max-retries=1
+            --max-retries=1 \
+            --set-env-vars=GCP_PROJECT_ID=${{ env.PROJECT_ID }},GCP_PROJECT_NUMBER=${{ env.PROJECT_NUMBER }},ENVIRONMENT=${{ env.ENVIRONMENT }}

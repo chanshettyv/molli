@@ -139,7 +139,9 @@ class Document360Client:
             payload = response.json()
             return _unwrap(payload)
 
-        raise Document360Error(f"GET {path} failed after {self._max_retries} retries") from last_exc
+        raise Document360Error(
+            f"GET {path} failed after {self._max_retries} retries"
+        ) from last_exc
 
     # -- public API ---------------------------------------------------------
 
@@ -159,7 +161,9 @@ class Document360Client:
             raise Document360Error("No project versions returned")
         return str(versions[0].get("id") or versions[0].get("version_id"))
 
-    async def list_categories(self, version_id: str | None = None) -> list[dict[str, Any]]:
+    async def list_categories(
+        self, version_id: str | None = None
+    ) -> list[dict[str, Any]]:
         """Return the (possibly nested) category tree for a project version."""
         version_id = version_id or await self._default_version_id()
         data = await self._get(f"/ProjectVersions/{version_id}/categories")
@@ -260,7 +264,9 @@ def _unwrap(payload: Any) -> Any:
     """Unwrap the D360 ``{"data": ..., "success": ...}`` envelope."""
     if isinstance(payload, dict) and "data" in payload and "success" in payload:
         if not payload.get("success", True):
-            raise Document360Error(f"API returned success=false: {payload.get('errors')}")
+            raise Document360Error(
+                f"API returned success=false: {payload.get('errors')}"
+            )
         return payload["data"]
     return payload
 
