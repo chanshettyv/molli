@@ -9,12 +9,13 @@ This guardrail is the last in the chain. It handles:
 - Repeat question detection (same question asked 3+ times)
 - Frustration signals
 """
+
 from __future__ import annotations
 
 import re
 from collections import defaultdict
 
-from .base import Action, Guardrail, GuardrailVerdict
+from .base import Action, GuardrailVerdict
 
 # ---------------------------------------------------------------------------
 # Tier 3 — explicit human handoff patterns
@@ -59,7 +60,9 @@ CANNED_RESPONSE_TIER3 = """This one needs a human. I'm connecting you with the r
 
 Someone will follow up with you shortly. If it's urgent, please reach out directly to your manager or the relevant department lead."""
 
-CANNED_RESPONSE_GRACEFUL_CLOSE = """No problem at all — I'm here if you need anything else."""
+CANNED_RESPONSE_GRACEFUL_CLOSE = (
+    """No problem at all — I'm here if you need anything else."""
+)
 
 # ---------------------------------------------------------------------------
 # Repeat question tracker (in-memory — replace with persistent store)
@@ -91,7 +94,9 @@ def _is_tier2_followup(text: str) -> bool:
 
 
 def _is_graceful_decline(text: str) -> bool:
-    return bool(re.search(r"\bnever mind\b|\bi'?ll figure it out\b", text, re.IGNORECASE))
+    return bool(
+        re.search(r"\bnever mind\b|\bi'?ll figure it out\b", text, re.IGNORECASE)
+    )
 
 
 class EscalationGuardrail:

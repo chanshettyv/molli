@@ -1,0 +1,19 @@
+{
+  "requesters": [
+    {
+      "id": 5000387689,
+      "first_name": "Test",
+      "last_name": "User",
+      "email": "user@preiss.com",
+      "active": true,
+      "address": null,
+      "department_ids": [],
+      "job_title": "Property Manager",
+      "work_phone_number": null,
+      "mobile_phone_number": null,
+      "language": "en",
+      "time_zone": "Eastern Time (US & Canada)",
+      "custom_fields": {}
+    }
+  ]
+}

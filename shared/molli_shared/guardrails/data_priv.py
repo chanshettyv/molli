@@ -7,11 +7,12 @@ If entire message is PII → BLOCK.
 If PII present alongside a valid question → REDACT.
 Third-party PII requests (asking about someone else's data) → BLOCK.
 """
+
 from __future__ import annotations
 
 import re
 
-from .base import Action, Guardrail, GuardrailVerdict
+from .base import Action, GuardrailVerdict
 
 # ---------------------------------------------------------------------------
 # PII detection patterns — keyed by type
@@ -58,7 +59,9 @@ def redact_pii(text: str) -> tuple[str, dict[str, int]]:
     redacted = text
     counts: dict[str, int] = {}
     for pii_type, pattern in _PII_PATTERNS.items():
-        new_text, n = re.subn(pattern, f"[REDACTED:{pii_type}]", redacted, flags=re.IGNORECASE)
+        new_text, n = re.subn(
+            pattern, f"[REDACTED:{pii_type}]", redacted, flags=re.IGNORECASE
+        )
         if n:
             redacted = new_text
             counts[pii_type] = n
@@ -77,15 +80,27 @@ def _is_entirely_pii(text: str, pii_found: dict) -> bool:
     # Identity documents presented for verification are always BLOCK
     # e.g. "Here's my driver's license number: D123-456-789"
     if "drivers_license" in pii_found or "passport" in pii_found:
-        if re.search(r"\b(here'?s|here is|my).{0,30}(driver'?s license|passport|license number|DL number)\b", text, re.IGNORECASE):
+        if re.search(
+            r"\b(here'?s|here is|my).{0,30}(driver'?s license|passport|license number|DL number)\b",
+            text,
+            re.IGNORECASE,
+        ):
             return True
 
     # SSN + update/change request = block (can't process identity updates via chat)
     if "SSN" in pii_found:
-        if re.search(r"\b(update|change|fix|correct|edit|modify|add|save|can you).{0,40}(my|the)\b.{0,40}(record|file|info|information|account|details)\b", text, re.IGNORECASE):
+        if re.search(
+            r"\b(update|change|fix|correct|edit|modify|add|save|can you).{0,40}(my|the)\b.{0,40}(record|file|info|information|account|details)\b",
+            text,
+            re.IGNORECASE,
+        ):
             return True
         # SSN shared directly as the subject of the message (not embedded in a question)
-        ssn_match = re.search(r"\bmy ssn is\b|\bssn:\s*\d|\bsocial security number is\b", text, re.IGNORECASE)
+        ssn_match = re.search(
+            r"\bmy ssn is\b|\bssn:\s*\d|\bsocial security number is\b",
+            text,
+            re.IGNORECASE,
+        )
         if ssn_match:
             return True
 

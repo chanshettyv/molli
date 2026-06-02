@@ -6,11 +6,12 @@ Two tiers:
 
 Tier 1 takes priority over Tier 2 if both signals are present.
 """
+
 from __future__ import annotations
 
 import re
 
-from .base import Action, Guardrail, GuardrailVerdict
+from .base import Action, GuardrailVerdict
 
 # ---------------------------------------------------------------------------
 # Tier 1 — active emergency patterns (present-tense incident or active threat)

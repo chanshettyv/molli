@@ -12,12 +12,13 @@ The runner also handles:
   - OSHA Tier 2: appends mandatory safety referral suffix to Gemini response
   - Data Privacy Mode B: scans Gemini output before returning to user
 """
+
 from __future__ import annotations
 
 import hashlib
 import logging
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from .base import Action, GuardrailVerdict
 from .data_privacy import DataPrivacyGuardrail, redact_pii
@@ -33,11 +34,12 @@ logger = logging.getLogger(__name__)
 @dataclass
 class ChainResult:
     """What the chain returns to the request handler."""
+
     verdict: GuardrailVerdict
     should_call_gemini: bool
-    message_to_gemini: str | None       # redacted if REDACT action
-    append_to_response: str | None      # OSHA Tier 2 referral suffix
-    response_to_user: str | None        # canned response when not calling Gemini
+    message_to_gemini: str | None  # redacted if REDACT action
+    append_to_response: str | None  # OSHA Tier 2 referral suffix
+    response_to_user: str | None  # canned response when not calling Gemini
 
 
 def _hash_user(user_email: str) -> str:
@@ -53,7 +55,7 @@ def _log_verdict(
     logger.info(
         "guardrail_verdict",
         extra={
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
             "user_id_hashed": _hash_user(user_email),
             "space_id": space_id,
             "session_id": session_id,
@@ -71,12 +73,12 @@ def _log_verdict(
 # ---------------------------------------------------------------------------
 
 _GUARDRAIL_CHAIN = [
-    MentalHealthGuardrail(),   # highest priority
-    OSHAGuardrail(),           # Tier 1 emergency second
-    FairHousingGuardrail(),    # FHA third
-    FCRAGuardrail(),           # FCRA fourth
-    DataPrivacyGuardrail(),    # Data Privacy (BLOCK) fifth; REDACT handled after
-    EscalationGuardrail(),     # Escalation last
+    MentalHealthGuardrail(),  # highest priority
+    OSHAGuardrail(),  # Tier 1 emergency second
+    FairHousingGuardrail(),  # FHA third
+    FCRAGuardrail(),  # FCRA fourth
+    DataPrivacyGuardrail(),  # Data Privacy (BLOCK) fifth; REDACT handled after
+    EscalationGuardrail(),  # Escalation last
 ]
 
 _DATA_PRIVACY_GUARDRAIL = DataPrivacyGuardrail()
