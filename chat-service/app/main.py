@@ -8,11 +8,44 @@ Real logic lands in Phase 1 and 2.
 from __future__ import annotations
 
 import structlog
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, HTTPException, Request
+from google.auth.transport import requests as google_requests
+from google.oauth2 import id_token
+from molli_shared.config import get_settings
 
 log = structlog.get_logger()
-
 app = FastAPI(title="Molli chat-service", version="0.1.0")
+
+# The service account Google Chat uses to sign requests to your app.
+CHAT_ISSUER = "chat@system.gserviceaccount.com"
+
+# Your GCP project number — the audience Google Chat sets on the token.
+EXPECTED_AUDIENCE = get_settings().gcp_project_number
+
+_request_adapter = google_requests.Request()
+
+
+async def verify_chat_request(request: Request) -> None:
+    """Reject any request that isn't a genuine, signed Google Chat event."""
+    auth_header = request.headers.get("Authorization", "")
+    if not auth_header.startswith("Bearer "):
+        log.warning("chat_auth_missing_bearer")
+        raise HTTPException(status_code=401, detail="Missing bearer token")
+
+    token = auth_header.removeprefix("Bearer ").strip()
+    try:
+        claims = id_token.verify_oauth2_token(
+            token,
+            _request_adapter,
+            audience=EXPECTED_AUDIENCE,
+        )
+    except ValueError as exc:
+        log.warning("chat_auth_invalid_token", error=str(exc))
+        raise HTTPException(status_code=401, detail="Invalid token") from exc
+
+    if claims.get("iss") != CHAT_ISSUER:
+        log.warning("chat_auth_wrong_issuer", issuer=claims.get("iss"))
+        raise HTTPException(status_code=401, detail="Wrong issuer")
 
 
 @app.get("/healthz")
@@ -34,6 +67,8 @@ async def chat_event(request: Request) -> dict[str, str]:
     if event_type == "MESSAGE":
         return {"text": "Hi! I'm Molli. I'm still being built — check back soon."}
     if event_type == "ADDED_TO_SPACE":
-        return {"text": "Hello! I'm Molli. I'll help you find answers from Preiss Central once I'm ready."}
+        return {
+            "text": "Hello! I'm Molli. I'll help you find answers from Preiss Central once I'm ready."
+        }
 
     return {"text": ""}

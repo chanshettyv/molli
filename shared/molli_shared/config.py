@@ -15,6 +15,7 @@ from pydantic import BaseModel
 
 class Settings(BaseModel):
     gcp_project_id: str
+    gcp_project_number: str
     gcp_region: str = "us-central1"
     environment: str = "dev"  # dev or prod
     document360_secret_name: str = "document360-api-key"
@@ -40,6 +41,7 @@ def get_settings() -> Settings:
     load_dotenv()  # only reads .env on first call, so safe to call multiple times
     return Settings(
         gcp_project_id=os.environ["GCP_PROJECT_ID"],
+        gcp_project_number=os.environ["GCP_PROJECT_NUMBER"],
         gcp_region=os.environ.get("GCP_REGION", "us-central1"),
         environment=os.environ.get("ENVIRONMENT", "dev"),
         freshservice_domain=os.environ.get("FRESHSERVICE_DOMAIN", "tpco-org"),
