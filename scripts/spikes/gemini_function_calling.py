@@ -1,5 +1,5 @@
 """
-Spike: Gemini 1.5 Pro function calling with a fake search_knowledge_base tool.
+Spike: Gemini 2.5 Flash function calling with a fake search_knowledge_base tool.
 
 Demonstrates:
   - Tool schema definition via the Vertex AI SDK
