@@ -1,4 +1,4 @@
-# Spike: Gemini 1.5 Pro function calling
+# Spike: Gemini 2.5 Flash function calling
 
 **Author:** Kautilya  
 **Sprint:** 1    
