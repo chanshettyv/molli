@@ -10,7 +10,7 @@ on:
   workflow_dispatch:
 
 env:
-  PROJECT_ID: molli-prod
+  PROJECT_ID: molli-dev
   REGION: us-central1
   JOB: molli-sync-job
   REPO: molli
@@ -31,6 +31,11 @@ jobs:
           service_account: ${{ secrets.GCP_DEPLOY_SA }}
 
       - uses: google-github-actions/setup-gcloud@v2
+
+      - name: Resolve project number
+        run: |
+          PROJECT_NUMBER=$(gcloud projects describe ${{ env.PROJECT_ID }} --format='value(projectNumber)')
+          echo "PROJECT_NUMBER=$PROJECT_NUMBER" >> $GITHUB_ENV
 
       - name: Configure Docker
         run: gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev

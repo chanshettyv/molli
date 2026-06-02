@@ -6,11 +6,12 @@ All triggers are flagged for Sally Sousa's weekly review.
 
 Action: BLOCK — return FCRA canned response.
 """
+
 from __future__ import annotations
 
 import re
 
-from .base import Action, Guardrail, GuardrailVerdict
+from .base import Action, GuardrailVerdict
 
 # ---------------------------------------------------------------------------
 # Trigger patterns — keyed by FCRA subcategory

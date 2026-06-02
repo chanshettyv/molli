@@ -1,0 +1,7 @@
+# Use this workspace to collaborate
+workspace:
+  id: e00389e4-e7a9-453b-8753-570de6a7c224
+
+localResources:
+  docs:
+    - ..\docs\spikes\gemini-function-calling.md

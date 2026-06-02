@@ -1,5 +1,5 @@
 """
-Spike: Gemini 1.5 Pro function calling with a fake search_knowledge_base tool.
+Spike: Gemini 2.5 Flash function calling with a fake search_knowledge_base tool.
 
 Demonstrates:
   - Tool schema definition via the Vertex AI SDK
@@ -19,6 +19,7 @@ Prerequisites:
 """
 
 import json
+
 import vertexai
 from vertexai.generative_models import (
     Content,
@@ -31,7 +32,7 @@ from vertexai.generative_models import (
 # ---------------------------------------------------------------------------
 # Configuration — swap PROJECT_ID for molli-dev once Sidney provisions it
 # ---------------------------------------------------------------------------
-PROJECT_ID = "molli-dev"   # or your personal GCP project ID
+PROJECT_ID = "molli-dev"  # or your personal GCP project ID
 LOCATION = "us-central1"
 MODEL = "gemini-2.5-flash"
 

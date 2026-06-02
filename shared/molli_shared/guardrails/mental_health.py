@@ -8,11 +8,12 @@ Action: ESCALATE — return EAP canned response, do not answer any other
 part of the message. EAP contact block is loaded from config so it can
 be updated without a redeploy (pending Sally Sousa confirmation).
 """
+
 from __future__ import annotations
 
 import re
 
-from .base import Action, Guardrail, GuardrailVerdict
+from .base import Action, GuardrailVerdict
 
 # ---------------------------------------------------------------------------
 # Trigger pattern sets — from guardrails-design.md §1

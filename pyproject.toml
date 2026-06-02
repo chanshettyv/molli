@@ -31,7 +31,7 @@ target-version = "py312"
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "B", "UP", "N", "S", "ASYNC", "RET", "SIM"]
-ignore = ["S101"]  # allow assert in tests
+ignore = ["S101", "E501"]  # allow assert in tests; ignore line-length
 
 [tool.ruff.lint.per-file-ignores]
 "**/tests/**" = ["S"]
