@@ -5,6 +5,11 @@ on:
   push:
     branches: [main]
 
+# Cancel in-progress runs on the same ref to avoid wasted/flaky overlapping jobs
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   lint-and-test:
     runs-on: ubuntu-latest
@@ -23,7 +28,7 @@ jobs:
         run: uv sync --all-packages --frozen
 
       - name: Lint (ruff check)
-        run: uv run ruff check . --fix
+        run: uv run ruff check .
 
       - name: Format check (ruff format)
         run: uv run ruff format --check .
@@ -38,7 +43,7 @@ jobs:
         env:
           GCP_PROJECT_ID: test-project
           GCP_PROJECT_NUMBER: "000000000000"
-        run: uv run pytest --cov --cov-report=xml --cov-report=term
+        run: uv run pytest -p no:randomly --cov --cov-report=xml --cov-report=term
 
       - name: Coverage gate
         run: |

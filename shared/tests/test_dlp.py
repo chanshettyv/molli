@@ -9,9 +9,8 @@ from __future__ import annotations
 
 import sys
 from types import ModuleType
-from unittest.mock import MagicMock, patch, call
+from unittest.mock import MagicMock
 
-import pytest
 
 # ---------------------------------------------------------------------------
 # Stub out google.cloud.dlp_v2 before any import of our module.
@@ -21,13 +20,14 @@ def _make_dlp_stub():
     google = ModuleType("google")
     google_cloud = ModuleType("google.cloud")
     dlp_v2 = ModuleType("google.cloud.dlp_v2")
-    dlp_v2.DlpServiceClient = MagicMock
-    google.cloud = google_cloud
-    google_cloud.dlp_v2 = dlp_v2
+    dlp_v2.DlpServiceClient = MagicMock  # type: ignore[attr-defined]
+    google.cloud = google_cloud  # type: ignore[attr-defined]
+    google_cloud.dlp_v2 = dlp_v2  # type: ignore[attr-defined]
     sys.modules.setdefault("google", google)
     sys.modules["google.cloud"] = google_cloud
     sys.modules["google.cloud.dlp_v2"] = dlp_v2
     return dlp_v2
+
 
 _dlp_stub = _make_dlp_stub()
 
@@ -42,7 +42,10 @@ from molli_shared.guardrails.dlp import (  # noqa: E402 — must come after stub
 # Helpers to build mock DLP responses
 # ---------------------------------------------------------------------------
 
-def _mock_dlp_response(original: str, redacted: str, found_types: list[str]):
+
+def _mock_dlp_response(
+    original: str, redacted: str, found_types: list[str]
+) -> MagicMock:
     response = MagicMock()
     response.item.value = redacted
 
@@ -71,6 +74,7 @@ def _scanner_with_mock_client(mock_response):
 # ---------------------------------------------------------------------------
 # Tests
 # ---------------------------------------------------------------------------
+
 
 class TestDLPScannerNoChange:
     def test_clean_message_unchanged(self):
@@ -158,6 +162,7 @@ class TestDLPScannerFailOpen:
         result = scanner.scan(text)
 
         assert result.scan_skipped is True
+        assert result.skip_reason is not None
         assert "Connection refused" in result.skip_reason
         assert result.redacted_text == text  # fail open
         assert result.has_pii is False
@@ -171,6 +176,7 @@ class TestDLPScannerFailOpen:
         result = scanner.scan("Some text with info@preiss.com in it")
 
         assert result.scan_skipped is True
+        assert result.skip_reason is not None
         assert "quota exceeded" in result.skip_reason
 
 
@@ -216,11 +222,9 @@ class TestDLPScannerConfig:
         scanner.scan(text)
 
         request = mock_client.deidentify_content.call_args[1]["request"]
-        replacement = (
-            request["deidentify_config"]
-            ["info_type_transformations"]["transformations"][0]
-            ["primitive_transformation"]["replace_config"]["new_value"]["string_value"]
-        )
+        replacement = request["deidentify_config"]["info_type_transformations"][
+            "transformations"
+        ][0]["primitive_transformation"]["replace_config"]["new_value"]["string_value"]
         assert replacement == "[REDACTED]"
 
 
@@ -241,4 +245,3 @@ class TestDLPResult:
         )
         assert r.has_pii is True
         assert "EMAIL_ADDRESS" in r.found_types
-        

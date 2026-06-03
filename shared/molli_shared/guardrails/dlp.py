@@ -26,7 +26,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass, field
-from typing import Optional
+from typing import Any, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -90,7 +90,7 @@ class DLPScanner:
         self._project_id = project_id
         self._info_types = info_types or DEFAULT_INFO_TYPES
         self._min_likelihood = min_likelihood
-        self._client = None  # lazy-loaded
+        self._client: Optional[Any] = None  # lazy-loaded
 
     # ------------------------------------------------------------------
     # Public API
@@ -129,17 +129,16 @@ class DLPScanner:
     # Internals
     # ------------------------------------------------------------------
 
-    def _get_client(self):
+    def _get_client(self) -> Any:
         """Lazy-load the DLP client so import doesn't fail in test environments."""
         if self._client is None:
-            from google.cloud import dlp_v2  # type: ignore[import]
+            from google.cloud import dlp_v2  # type: ignore[attr-defined]
 
             self._client = dlp_v2.DlpServiceClient()
         return self._client
 
-    def _call_dlp(self, client, text: str) -> DLPResult:
+    def _call_dlp(self, client: Any, text: str) -> DLPResult:
         """Issue a deidentifyContent call and parse the response."""
-        from google.cloud import dlp_v2  # type: ignore[import]
 
         parent = f"projects/{self._project_id}/locations/global"
 
@@ -178,7 +177,11 @@ class DLPScanner:
         # Extract which infoTypes were found from the overview.
         found_types: list[str] = []
         overview = response.overview
-        if overview and hasattr(overview, "transformed_bytes") and overview.transformed_bytes:
+        if (
+            overview
+            and hasattr(overview, "transformed_bytes")
+            and overview.transformed_bytes
+        ):
             # Walk transformation_summaries to collect infoType names.
             for summary in overview.transformation_summaries:
                 if hasattr(summary, "info_type") and summary.info_type.name:
