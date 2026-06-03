@@ -12,9 +12,11 @@ from fastapi import FastAPI, HTTPException, Request
 from google.auth.transport import requests as google_requests
 from google.oauth2 import id_token
 from molli_shared.config import get_settings
+from molli_shared.guardrails.dlp import DLPScanner
 
 log = structlog.get_logger()
 app = FastAPI(title="Molli chat-service", version="0.1.0")
+_dlp = DLPScanner(project_id=get_settings().gcp_project_id)
 
 # The service account Google Chat uses to sign requests to your app.
 CHAT_ISSUER = "chat@system.gserviceaccount.com"
@@ -65,6 +67,12 @@ async def chat_event(request: Request) -> dict[str, str]:
     log.info("chat_event_received", event_type=event_type)
 
     if event_type == "MESSAGE":
+        user_text = event.get("message", {}).get("text", "")
+        dlp_result = _dlp.scan(user_text)
+        if dlp_result.scan_skipped:
+            log.warning("dlp_scan_skipped", reason=dlp_result.skip_reason)
+        if dlp_result.has_pii:
+            log.info("dlp_pii_redacted", found_types=dlp_result.found_types)
         return {"text": "Hi! I'm Molli. I'm still being built — check back soon."}
     if event_type == "ADDED_TO_SPACE":
         return {
