@@ -11,6 +11,7 @@ Third-party PII requests (asking about someone else's data) → BLOCK.
 from __future__ import annotations
 
 import re
+from typing import Any
 
 from .base import Action, GuardrailVerdict
 
@@ -72,7 +73,7 @@ def _is_third_party_request(text: str) -> bool:
     return any(re.search(p, text, re.IGNORECASE) for p in _THIRD_PARTY_PATTERNS)
 
 
-def _is_entirely_pii(text: str, pii_found: dict) -> bool:
+def _is_entirely_pii(text: str, pii_found: dict[str, Any]) -> bool:
     """True if the message is essentially all PII with no real question."""
     if not pii_found:
         return False

@@ -20,8 +20,6 @@ class Settings(BaseModel):
     environment: str = "dev"  # dev or prod
     document360_secret_name: str = "document360-api-key"
     freshservice_api_secret_name: str = "freshservice-api-key"
-    freshservice_domain: str
-    vector_index_id: str | None = None
     freshservice_domain: str  # e.g. "tpco-org" — see freshservice_base_url
     vector_index_id: str | None = None
     vector_index_endpoint: str | None = None

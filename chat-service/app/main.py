@@ -34,7 +34,7 @@ async def verify_chat_request(request: Request) -> None:
 
     token = auth_header.removeprefix("Bearer ").strip()
     try:
-        claims = id_token.verify_oauth2_token(
+        claims = id_token.verify_oauth2_token(  # type: ignore[no-untyped-call]
             token,
             _request_adapter,
             audience=EXPECTED_AUDIENCE,

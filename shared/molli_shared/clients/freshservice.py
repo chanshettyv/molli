@@ -228,7 +228,7 @@ class FreshserviceClient:
         """
         base = 2**attempt
         jitter = random.uniform(0, 0.5)
-        return min(base + jitter, cls.MAX_BACKOFF_SECONDS)
+        return float(min(base + jitter, cls.MAX_BACKOFF_SECONDS))
 
     @classmethod
     def _wait_for_retry_after(cls, response: httpx.Response, attempt: int) -> float:

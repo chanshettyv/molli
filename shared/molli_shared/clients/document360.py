@@ -294,7 +294,7 @@ def _is_published(article: dict[str, Any]) -> bool:
         return True  # be permissive if the field is absent
     if isinstance(status, str):
         return status.lower() == "published"
-    return status == 3
+    return bool(status == 3)
 
 
 def _parse_dt(value: Any) -> datetime | None:

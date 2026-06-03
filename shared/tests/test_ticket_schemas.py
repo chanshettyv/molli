@@ -199,15 +199,17 @@ class TestRequesterRecord:
 
     def test_extra_fields_ignored(self):
         """Real Freshservice responses include dozens of fields we don't model."""
-        record = RequesterRecord(
-            id=5000387689,
-            email="user@preiss.com",
-            first_name="Test",
-            last_name="User",
-            department_ids=[1, 2],
-            job_title="Property Manager",
-            work_phone_number="555-1234",
-            custom_fields={"some_field": "some_value"},
+        record = RequesterRecord.model_validate(
+            {
+                "id": 5000387689,
+                "email": "user@preiss.com",
+                "first_name": "Test",
+                "last_name": "User",
+                "department_ids": [1, 2],
+                "job_title": "Property Manager",
+                "work_phone_number": "555-1234",
+                "custom_fields": {"some_field": "some_value"},
+            }
         )
         assert record.first_name == "Test"
         assert not hasattr(record, "department_ids")
@@ -236,17 +238,19 @@ class TestCreatedTicket:
         assert ticket.group_id is None
 
     def test_extra_response_fields_ignored(self):
-        ticket = CreatedTicket(
-            id=87040,
-            subject="Test",
-            status=2,
-            priority=2,
-            created_at="2026-06-01T19:16:06Z",
-            # Real response noise
-            fr_escalated=False,
-            workspace_id=2,
-            tasks_dependency_type=0,
-            description="<div>...</div>",
+        ticket = CreatedTicket.model_validate(
+            {
+                "id": 87040,
+                "subject": "Test",
+                "status": 2,
+                "priority": 2,
+                "created_at": "2026-06-01T19:16:06Z",
+                # Real response noise
+                "fr_escalated": False,
+                "workspace_id": 2,
+                "tasks_dependency_type": 0,
+                "description": "<div>...</div>",
+            }
         )
         assert ticket.id == 87040
 
@@ -269,7 +273,7 @@ class TestFieldConfidence:
 
     def test_unknown_source_rejected(self):
         with pytest.raises(ValidationError):
-            FieldConfidence(value="x", confidence=0.5, source="made-up")
+            FieldConfidence(value="x", confidence=0.5, source="made-up")  # type: ignore[arg-type]
 
     def test_accepts_any_value_type(self):
         """value: Any — should accept strings, ints, lists, dicts, None."""
@@ -314,6 +318,7 @@ class TestTicketDraft:
             molli_escalation_reason="no-confident-answer",
             email=FieldConfidence(value="u@p.com", confidence=1.0, source="lookup"),
         )
+        assert draft.email is not None
         assert draft.email.value == "u@p.com"
         assert draft.email.source == "lookup"
 
