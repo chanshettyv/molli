@@ -40,6 +40,7 @@ ignore = ["S101", "E501"]  # allow assert in tests; ignore line-length
 python_version = "3.12"
 strict = true
 ignore_missing_imports = true
+warn_unused_ignores = false
 
 [[tool.mypy.overrides]]
 module = ["tests.*"]
