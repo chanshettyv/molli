@@ -35,6 +35,9 @@ jobs:
           uv run mypy shared
 
       - name: Test
+        env:
+          GCP_PROJECT_ID: test-project
+          GCP_PROJECT_NUMBER: "000000000000"
         run: uv run pytest --cov --cov-report=xml --cov-report=term
 
       - name: Coverage gate
