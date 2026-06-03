@@ -1,6 +1,6 @@
 $kind: http-request
 name: New Request
-url: https://molli-chat-service-jl5lcjbnla-uc.a.run.app/healthz
+url: https://molli-chat-service-jl5lcjbnla-uc.a.run.app/health
 method: GET
 auth:
   type: bearer

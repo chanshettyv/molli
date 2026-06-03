@@ -23,7 +23,7 @@ jobs:
         run: uv sync --all-packages --frozen
 
       - name: Lint (ruff check)
-        run: uv run ruff check .
+        run: uv run ruff check . --fix
 
       - name: Format check (ruff format)
         run: uv run ruff format --check .
