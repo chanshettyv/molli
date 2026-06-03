@@ -50,8 +50,8 @@ async def verify_chat_request(request: Request) -> None:
         raise HTTPException(status_code=401, detail="Wrong issuer")
 
 
-@app.get("/healthz")
-async def healthz() -> dict[str, str]:
+@app.get("/health")  # <-- add this
+async def health() -> dict[str, str]:
     return {"status": "ok"}
 
 
