@@ -7,6 +7,8 @@ Real logic lands in Phase 1 and 2.
 
 from __future__ import annotations
 
+from typing import Any
+
 import structlog
 from fastapi import FastAPI, HTTPException, Request
 from google.auth.transport import requests as google_requests
@@ -15,7 +17,7 @@ from molli_shared.config import get_settings
 from molli_shared.guardrails.dlp import DLPScanner
 
 
-def _classify(event: dict) -> tuple[str, dict]:
+def _classify(event: dict[str, Any]) -> tuple[str, dict[str, Any]]:
     """Return (event_type, message_dict) for the Chat API event envelope."""
     chat = event.get("chat", {})
     if "messagePayload" in chat:
@@ -30,6 +32,15 @@ def _classify(event: dict) -> tuple[str, dict]:
     if "type" in event:
         return event["type"], event.get("message", {})
     return "UNKNOWN", {}
+
+
+def _chat_reply(text: str) -> dict:
+    """Wrap a plain text reply in the Chat API event-format response envelope."""
+    return {
+        "hostAppDataAction": {
+            "chatDataAction": {"createMessageAction": {"message": {"text": text}}}
+        }
+    }
 
 
 log = structlog.get_logger()
@@ -91,13 +102,13 @@ async def chat_event(request: Request) -> dict[str, str]:
         if dlp_result.has_pii:
             log.info("dlp_pii_redacted", found_types=dlp_result.found_types)
 
-        return {
-            "text": f"Hi {user_name or 'there'}! I'm Molli. I'm still being built — check back soon."
-        }
+        return _chat_reply(
+            f"Hi {user_name or 'there'}! I'm Molli. I'm still being built — check back soon."
+        )
 
     if event_type == "ADDED_TO_SPACE":
-        return {
-            "text": "Hello! I'm Molli. I'll help you find answers from Preiss Central once I'm ready."
-        }
+        return _chat_reply(
+            "Hello! I'm Molli. I'll help you find answers from Preiss Central once I'm ready."
+        )
 
     return {"text": ""}
