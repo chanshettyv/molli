@@ -11,6 +11,8 @@ def test_health() -> None:
 
 def test_added_to_space_returns_greeting() -> None:
     client = TestClient(app)
-    resp = client.post("/", json={"type": "ADDED_TO_SPACE"})
+    resp = client.post("/", json={"chat": {"addedToSpacePayload": {}}})
     assert resp.status_code == 200
-    assert "Molli" in resp.json()["text"]
+    data = resp.json()
+    text = data["hostAppDataAction"]["chatDataAction"]["createMessageAction"]["message"]["text"]
+    assert "Molli" in text
