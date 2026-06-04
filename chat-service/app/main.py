@@ -34,7 +34,7 @@ def _classify(event: dict[str, Any]) -> tuple[str, dict[str, Any]]:
     return "UNKNOWN", {}
 
 
-def _chat_reply(text: str) -> dict:
+def _chat_reply(text: str) -> dict[str, Any]:
     """Wrap a plain text reply in the Chat API event-format response envelope."""
     return {
         "hostAppDataAction": {
@@ -79,13 +79,13 @@ async def verify_chat_request(request: Request) -> None:
         raise HTTPException(status_code=401, detail="Wrong issuer")
 
 
-@app.get("/health")  # <-- add this
+@app.get("/health")
 async def health() -> dict[str, str]:
     return {"status": "ok"}
 
 
 @app.post("/")
-async def chat_event(request: Request) -> dict[str, str]:
+async def chat_event(request: Request) -> dict[str, Any]:
     event = await request.json()
     event_type, message = _classify(event)
     log.info("chat_event_received", event_type=event_type)
@@ -111,4 +111,4 @@ async def chat_event(request: Request) -> dict[str, str]:
             "Hello! I'm Molli. I'll help you find answers from Preiss Central once I'm ready."
         )
 
-    return {"text": ""}
+    return {}
