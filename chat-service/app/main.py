@@ -7,14 +7,30 @@ Real logic lands in Phase 1 and 2.
 
 from __future__ import annotations
 
-import json
-
 import structlog
 from fastapi import FastAPI, HTTPException, Request
 from google.auth.transport import requests as google_requests
 from google.oauth2 import id_token
 from molli_shared.config import get_settings
 from molli_shared.guardrails.dlp import DLPScanner
+
+
+def _classify(event: dict) -> tuple[str, dict]:
+    """Return (event_type, message_dict) for the Chat API event envelope."""
+    chat = event.get("chat", {})
+    if "messagePayload" in chat:
+        return "MESSAGE", chat["messagePayload"].get("message", {})
+    if "addedToSpacePayload" in chat:
+        return "ADDED_TO_SPACE", {}
+    if "removedFromSpacePayload" in chat:
+        return "REMOVED_FROM_SPACE", {}
+    if "buttonClickedPayload" in chat:
+        return "CARD_CLICKED", {}
+    # Legacy fallback, in case config ever changes
+    if "type" in event:
+        return event["type"], event.get("message", {})
+    return "UNKNOWN", {}
+
 
 log = structlog.get_logger()
 app = FastAPI(title="Molli chat-service", version="0.1.0")
@@ -59,24 +75,26 @@ async def health() -> dict[str, str]:
 
 @app.post("/")
 async def chat_event(request: Request) -> dict[str, str]:
-    """Receive a Google Chat event.
-
-    Google Chat sends JSON with a `type` field: MESSAGE, ADDED_TO_SPACE,
-    REMOVED_FROM_SPACE, CARD_CLICKED. Phase 0 just acknowledges.
-    """
     event = await request.json()
-    log.info("raw_chat_event", body=json.dumps(event))
-    event_type = event.get("type", "UNKNOWN")
+    event_type, message = _classify(event)
     log.info("chat_event_received", event_type=event_type)
 
     if event_type == "MESSAGE":
-        user_text = event.get("message", {}).get("text", "")
+        user_text = message.get("text", "")
+        sender = message.get("sender", {})
+        # user_email = sender.get("email", "")
+        user_name = sender.get("displayName", "")
+
         dlp_result = _dlp.scan(user_text)
         if dlp_result.scan_skipped:
             log.warning("dlp_scan_skipped", reason=dlp_result.skip_reason)
         if dlp_result.has_pii:
             log.info("dlp_pii_redacted", found_types=dlp_result.found_types)
-        return {"text": "Hi! I'm Molli. I'm still being built — check back soon."}
+
+        return {
+            "text": f"Hi {user_name or 'there'}! I'm Molli. I'm still being built — check back soon."
+        }
+
     if event_type == "ADDED_TO_SPACE":
         return {
             "text": "Hello! I'm Molli. I'll help you find answers from Preiss Central once I'm ready."
