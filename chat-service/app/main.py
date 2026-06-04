@@ -7,6 +7,8 @@ Real logic lands in Phase 1 and 2.
 
 from __future__ import annotations
 
+import json
+
 import structlog
 from fastapi import FastAPI, HTTPException, Request
 from google.auth.transport import requests as google_requests
@@ -63,6 +65,7 @@ async def chat_event(request: Request) -> dict[str, str]:
     REMOVED_FROM_SPACE, CARD_CLICKED. Phase 0 just acknowledges.
     """
     event = await request.json()
+    log.info("raw_chat_event", body=json.dumps(event))
     event_type = event.get("type", "UNKNOWN")
     log.info("chat_event_received", event_type=event_type)
 

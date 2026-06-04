@@ -1,19 +1,5 @@
 $kind: http-request
 name: "1.1"
-url: "{{base_url}}/groups"
+url: "{{base_url}}/tickets/87157"
 method: GET
-scripts:
-  - type: afterResponse
-    code: "const response = pm.response.json();\r
-
-      const groups = response.groups || response;\r
-
-      \r
-
-      const simplified = groups.map(g => ({ id: g.id, name: g.name }));\r
-
-      \r
-
-      console.log(JSON.stringify(simplified, null, 2));"
-    language: text/javascript
 order: 2089286329611176
