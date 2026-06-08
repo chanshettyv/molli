@@ -221,3 +221,71 @@ Mirrored from section 9 of the project context doc; updated as items resolve.
 - **Who owns this area:** `.github/CODEOWNERS`.
 - **What did the ticket investigation say about X:** `docs/ticket-investigation.md`.
 - **Real ambiguity:** ask in the team Chat space rather than guessing.
+
+## Vector Search provisioning (molli-dev)
+
+Vertex AI Vector Search is the vector backend (per superior's direction; no decision
+doc was written). These steps provision the index + endpoint in `molli-dev` and are
+reproducible for `molli-prod` at launch time.
+
+### Current resource IDs (molli-dev)
+
+| Resource | ID |
+|---|---|
+| Index | `3890822006001631232` |
+| Index endpoint | `5864348620836306944` |
+| Deployed index ID | `molli_knowledge_stream` |
+| Public endpoint domain | `163164439.us-central1-719635778769.vdb.vertexai.goog` |
+| Region | `us-central1` |
+
+These are stored in `.env` as `VECTOR_INDEX_ID` and `VECTOR_INDEX_ENDPOINT` and loaded
+via `shared/molli_shared/config.py`. The public endpoint domain is needed for queries
+(see gotcha below) � record it when provisioning prod.
+
+### Provisioning steps
+
+All commands run in Cloud Shell with `gcloud config set project molli-dev`.
+
+1. Create the index � use `stream-update` from the start. Build a metadata file with
+   `dimensions: 768` (matches text-embedding-004), `SHARD_SIZE_SMALL`,
+   `DOT_PRODUCT_DISTANCE`, then `gcloud ai indexes create` with
+   `--index-update-method=stream-update`. Takes ~30 min.
+
+2. Create the index endpoint with `gcloud ai index-endpoints create`.
+
+3. Deploy the index to the endpoint with `gcloud ai index-endpoints deploy-index`,
+   using `--deployed-index-id=molli_knowledge_stream` and
+   `--machine-type=n1-standard-16`. Takes ~30 min. Confirm with
+   `gcloud ai index-endpoints describe` and look for an `indexSyncTime`.
+
+4. Verify with `uv run python scripts/spikes/vector_search_test.py` � it upserts
+   `test-doc-001` and retrieves it as the nearest neighbor.
+
+### Gotchas hit during molli-dev provisioning
+
+- Use `stream-update`, not the default `batch-update`. `upsert_datapoints` (the
+  streaming API the sync job uses) requires `STREAM_UPDATE`; batch mode gives
+  `FAILED_PRECONDITION: StreamUpdate is not enabled on this index`. Fixing it after
+  the fact means undeploy ? delete ? recreate ? redeploy (~1 hr).
+
+- `us-central1` ran out of capacity on first deploy (`Not enough resources available`).
+  A retry later succeeded; if it persists, try another region or escalate to Adam.
+
+- `e2-standard-2` is not valid for `SHARD_SIZE_MEDIUM` � medium shards need a larger
+  machine. We used `SHARD_SIZE_SMALL` for dev, which is cheaper and sufficient.
+
+- Queries must hit the endpoint's `publicEndpointDomainName`, not the regional API
+  host. Upserts use `{region}-aiplatform.googleapis.com`, but `find_neighbors` queries
+  must target the public domain. Using the regional host for queries returns
+  `501 Operation is not implemented, or supported, or enabled`.
+
+### Cost note
+
+A deployed index endpoint runs `n1-standard-16` replicas 24/7 and bills even when idle.
+For dev, undeploy the index when not actively testing:
+
+    gcloud ai index-endpoints undeploy-index <ENDPOINT_ID> \
+      --deployed-index-id=molli_knowledge_stream \
+      --region=us-central1 --project=molli-dev
+
+Redeploying takes ~30 min, so weigh idle cost vs. convenience.
