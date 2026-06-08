@@ -16,6 +16,8 @@ from google.oauth2 import id_token
 from molli_shared.config import get_settings
 from molli_shared.guardrails.dlp import DLPScanner
 
+from app.gemini_client import ask_gemini
+
 
 def _classify(event: dict[str, Any]) -> tuple[str, dict[str, Any]]:
     """Return (event_type, message_dict) for the Chat API event envelope."""
@@ -96,15 +98,14 @@ async def chat_event(request: Request) -> dict[str, Any]:
         # user_email = sender.get("email", "")
         user_name = sender.get("displayName", "")
 
-        dlp_result = _dlp.scan(user_text)
-        if dlp_result.scan_skipped:
-            log.warning("dlp_scan_skipped", reason=dlp_result.skip_reason)
-        if dlp_result.has_pii:
-            log.info("dlp_pii_redacted", found_types=dlp_result.found_types)
-
-        return _chat_reply(
-            f"Hi {user_name or 'there'}! I'm Molli. I'm still being built — check back soon."
-        )
+        settings = get_settings()
+        if settings.use_gemini:
+            reply_text = ask_gemini(user_text)
+        else:
+            reply_text = (
+                f"Hi {user_name or 'there'}! I'm Molli. " "I'm still being built — check back soon."
+            )
+        return _chat_reply(reply_text)
 
     if event_type == "ADDED_TO_SPACE":
         return _chat_reply(

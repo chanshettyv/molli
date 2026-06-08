@@ -41,9 +41,10 @@ python_version = "3.12"
 strict = true
 ignore_missing_imports = true
 warn_unused_ignores = false
+explicit_package_bases = true
 
 [[tool.mypy.overrides]]
-module = ["tests.*"]
+module = ["tests.*", "*.tests.*", "chat-service.tests.*", "shared.tests.*"]
 disallow_untyped_defs = false
 disallow_untyped_calls = false
 warn_return_any = false

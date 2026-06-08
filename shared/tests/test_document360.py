@@ -8,6 +8,7 @@ author PII and signed CDN tokens.
 from __future__ import annotations
 
 from datetime import UTC, datetime
+from typing import Any
 
 import httpx
 import pytest
@@ -59,7 +60,7 @@ def _stub(
     modified_at: str = "2026-06-02T21:05:05.495Z",
     security_visibility: int = 1,
     content_type: int = 2,
-) -> dict:
+) -> dict[str, Any]:
     return {
         "url": None,
         "exclude_from_external_search": False,
@@ -140,7 +141,7 @@ CATEGORIES_PAYLOAD = {
     "errors": [],
 }
 
-ARTICLE_PAYLOAD = {
+ARTICLE_PAYLOAD: dict[str, Any] = {
     "data": {
         "id": "art-published",
         "title": "Central Documents List",

@@ -295,7 +295,7 @@ class TicketDraft(BaseModel):
             priority_value = 2
 
         return TicketCreatePayload(
-            email=resolved("email"),
+            primary_email=resolved("email"),
             subject=resolved("subject"),
             description=resolved("description"),
             group_id=resolved("group_id"),

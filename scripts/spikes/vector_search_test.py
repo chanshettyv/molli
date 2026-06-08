@@ -12,6 +12,7 @@ Prerequisites:
 """
 
 import os
+
 from dotenv import load_dotenv
 from google.cloud import aiplatform_v1
 
@@ -25,6 +26,7 @@ DEPLOYED_INDEX_ID = "molli_knowledge_stream"
 # One fake 768-dimension vector (text-embedding-004 output shape)
 FAKE_VECTOR = [0.01] * 768
 FAKE_DATAPOINT_ID = "test-doc-001"
+
 
 def main():
     endpoint = f"projects/{PROJECT_ID}/locations/{REGION}/indexEndpoints/{INDEX_ENDPOINT_ID}"
@@ -66,6 +68,6 @@ def main():
     for neighbor in response.nearest_neighbors[0].neighbors:
         print(f"  id={neighbor.datapoint.datapoint_id}  distance={neighbor.distance}")
 
+
 if __name__ == "__main__":
     main()
-
