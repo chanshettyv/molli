@@ -1,0 +1,4 @@
+$kind: collection
+name: Doc 360
+variables:
+  base_url: ""

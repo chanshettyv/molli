@@ -43,3 +43,10 @@ application_default_credentials.json
 dist/
 build/
 *.egg
+
+
+# Ignore local Postman configuration and cache
+.postman/
+
+# Ignore sensitive Postman environment files
+*.postman_environment.json

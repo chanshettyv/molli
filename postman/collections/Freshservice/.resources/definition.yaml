@@ -1,5 +1,5 @@
 $kind: collection
-name: Molli
+name: Freshservice
 variables:
   base_url: ""
   api_key: ""

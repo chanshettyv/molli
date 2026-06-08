@@ -120,7 +120,7 @@ class TicketCreatePayload(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     # Required by Freshservice
-    email: EmailStr
+    primary_email: EmailStr
     subject: str = Field(min_length=1, max_length=255)
     description: str = Field(min_length=1)
 
@@ -147,7 +147,7 @@ class RequesterRecord(BaseModel):
     model_config = ConfigDict(extra="ignore")
 
     id: int
-    email: EmailStr
+    primary_email: EmailStr
     first_name: str | None = None
     last_name: str | None = None
     active: bool = True

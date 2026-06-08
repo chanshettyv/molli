@@ -1,5 +1,0 @@
-$kind: http-request
-name: "1.1"
-url: "{{base_url}}/tickets/87157"
-method: GET
-order: 2089286329611176

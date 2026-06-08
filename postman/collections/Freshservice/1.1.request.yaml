@@ -1,0 +1,7 @@
+$kind: http-request
+name: "1.1"
+url: "{{base_url}}/requesters?primary_email=sasha.burrell@tpco.com"
+method: GET
+queryParams:
+  primary_email: sasha.burrell@tpco.com
+order: 2089286329611176
