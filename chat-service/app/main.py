@@ -10,11 +10,11 @@ from __future__ import annotations
 from typing import Any
 
 import structlog
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import Depends, FastAPI, HTTPException, Request
 from google.auth.transport import requests as google_requests
 from google.oauth2 import id_token
 from molli_shared.config import get_settings
-from molli_shared.guardrails.dlp import DLPScanner
+from molli_shared.guardrails.chain import run_chain, scan_gemini_output
 
 from app.gemini_client import ask_gemini
 
@@ -47,7 +47,6 @@ def _chat_reply(text: str) -> dict[str, Any]:
 
 log = structlog.get_logger()
 app = FastAPI(title="Molli chat-service", version="0.1.0")
-_dlp = DLPScanner(project_id=get_settings().gcp_project_id)
 
 # The service account Google Chat uses to sign requests to your app.
 CHAT_ISSUER = "chat@system.gserviceaccount.com"
@@ -87,7 +86,7 @@ async def health() -> dict[str, str]:
 
 
 @app.post("/")
-async def chat_event(request: Request) -> dict[str, Any]:
+async def chat_event(request: Request, _: None = Depends(verify_chat_request)) -> dict[str, Any]:
     event = await request.json()
     event_type, message = _classify(event)
     log.info("chat_event_received", event_type=event_type)
@@ -95,16 +94,33 @@ async def chat_event(request: Request) -> dict[str, Any]:
     if event_type == "MESSAGE":
         user_text = message.get("text", "")
         sender = message.get("sender", {})
-        # user_email = sender.get("email", "")
+        user_email = sender.get("email", "")
         user_name = sender.get("displayName", "")
+        space_id = event.get("space", {}).get("name", "unknown")
+        session_id = message.get("name", "unknown")
+
+        chain_result = await run_chain(user_text, user_email, space_id, session_id)
+        log.info(
+            "guardrail_chain_result",
+            action=chain_result.verdict.action,
+            category=chain_result.verdict.category,
+        )
+
+        if not chain_result.should_call_gemini:
+            return _chat_reply(chain_result.response_to_user or "")
 
         settings = get_settings()
         if settings.use_gemini:
-            reply_text = ask_gemini(user_text)
+            reply_text = ask_gemini(chain_result.message_to_gemini or user_text)
+            reply_text, _ = await scan_gemini_output(reply_text, user_email, space_id, session_id)
         else:
             reply_text = (
                 f"Hi {user_name or 'there'}! I'm Molli. " "I'm still being built — check back soon."
             )
+
+        if chain_result.append_to_response:
+            reply_text = f"{reply_text}\n\n{chain_result.append_to_response}"
+
         return _chat_reply(reply_text)
 
     if event_type == "ADDED_TO_SPACE":
