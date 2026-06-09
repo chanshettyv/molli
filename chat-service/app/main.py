@@ -10,9 +10,7 @@ from __future__ import annotations
 from typing import Any
 
 import structlog
-from fastapi import Depends, FastAPI, HTTPException, Request
-from google.auth.transport import requests as google_requests
-from google.oauth2 import id_token
+from fastapi import FastAPI, Request
 from molli_shared.config import get_settings
 from molli_shared.guardrails.chain import run_chain, scan_gemini_output
 
@@ -48,39 +46,6 @@ def _chat_reply(text: str) -> dict[str, Any]:
 log = structlog.get_logger()
 app = FastAPI(title="Molli chat-service", version="0.1.0")
 
-# The service account Google Chat uses to sign requests to your app.
-CHAT_ISSUER = "chat@system.gserviceaccount.com"
-
-# For HTTP-endpoint Chat apps, Google sets the JWT audience to the full
-# service URL. For Apps Script apps it's the project number. Prefer the URL.
-_s = get_settings()
-EXPECTED_AUDIENCE = _s.chat_service_url or _s.gcp_project_number
-
-_request_adapter = google_requests.Request()
-
-
-async def verify_chat_request(request: Request) -> None:
-    """Reject any request that isn't a genuine, signed Google Chat event."""
-    auth_header = request.headers.get("Authorization", "")
-    if not auth_header.startswith("Bearer "):
-        log.warning("chat_auth_missing_bearer")
-        raise HTTPException(status_code=401, detail="Missing bearer token")
-
-    token = auth_header.removeprefix("Bearer ").strip()
-    try:
-        claims = id_token.verify_oauth2_token(  # type: ignore[no-untyped-call]
-            token,
-            _request_adapter,
-            audience=EXPECTED_AUDIENCE,
-        )
-    except ValueError as exc:
-        log.warning("chat_auth_invalid_token", error=str(exc))
-        raise HTTPException(status_code=401, detail="Invalid token") from exc
-
-    if claims.get("iss") != CHAT_ISSUER:
-        log.warning("chat_auth_wrong_issuer", issuer=claims.get("iss"))
-        raise HTTPException(status_code=401, detail="Wrong issuer")
-
 
 @app.get("/health")
 async def health() -> dict[str, str]:
@@ -88,7 +53,7 @@ async def health() -> dict[str, str]:
 
 
 @app.post("/")
-async def chat_event(request: Request, _: None = Depends(verify_chat_request)) -> dict[str, Any]:
+async def chat_event(request: Request) -> dict[str, Any]:
     event = await request.json()
     event_type, message = _classify(event)
     log.info("chat_event_received", event_type=event_type)
