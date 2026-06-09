@@ -85,7 +85,6 @@ Trigger on questions from **employees asking how to screen, reject, or treat ten
 - Return canned response below
 - Do not pass the message to Gemini
 - Log with category `FHA`
-- If the same user triggers FHA more than twice in a 7-day window, escalate to Sally Sousa
 
 ### Canned Response
 
