@@ -65,7 +65,7 @@ _EXCLUSION_PATTERNS: list[str] = [
 
 # EAP canned response — contact block is a placeholder pending Sally Sousa.
 # In production this should be loaded from Secret Manager key: eap-contact-block
-_EAP_CONTACT_BLOCK = "[PENDING — Sally Sousa to confirm provider name, phone number, and any Preiss-specific instructions]"
+_EAP_CONTACT_BLOCK = EAP_CONTACT_BLOCK = config.get_secret("eap-contact-block")
 
 CANNED_RESPONSE = f"""I'm really glad you reached out, and I want to make sure you get the right support.
 
