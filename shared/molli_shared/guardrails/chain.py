@@ -21,7 +21,7 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 
 from .base import Action, GuardrailVerdict
-from .data_privacy import DataPrivacyGuardrail, redact_pii
+from .data_priv import DataPrivacyGuardrail, redact_pii
 from .escalation import EscalationGuardrail
 from .fair_housing import FairHousingGuardrail
 from .fcra import FCRAGuardrail
