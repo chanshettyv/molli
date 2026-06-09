@@ -13,6 +13,8 @@ from __future__ import annotations
 
 import re
 
+from molli_shared.config import get_secret, get_settings
+
 from .base import Action, GuardrailVerdict
 
 # ---------------------------------------------------------------------------
@@ -63,15 +65,18 @@ _EXCLUSION_PATTERNS: list[str] = [
     r"\bkilling it\b",  # positive idiom
 ]
 
-# EAP canned response — contact block is a placeholder pending Sally Sousa.
-# In production this should be loaded from Secret Manager key: eap-contact-block
-_EAP_CONTACT_BLOCK = EAP_CONTACT_BLOCK = config.get_secret("eap-contact-block")
+# EAP canned response — loaded from Secret Manager key: eap-contact-block.
+# Falls back to a placeholder if the secret isn't provisioned yet (dev / CI).
+try:
+    EAP_CONTACT_BLOCK = get_secret("eap-contact-block", get_settings().gcp_project_id)
+except Exception:
+    EAP_CONTACT_BLOCK = "(EAP contact details — see HR for current information)"
 
 CANNED_RESPONSE = f"""I'm really glad you reached out, and I want to make sure you get the right support.
 
 Please connect with Preiss's Employee Assistance Program (EAP) — they offer free, confidential support 24/7:
 
-EAP Contact: {_EAP_CONTACT_BLOCK}
+EAP Contact: {EAP_CONTACT_BLOCK}
 
 If you're in immediate danger, please call or text 988 (Suicide & Crisis Lifeline) or go to your nearest emergency room.
 

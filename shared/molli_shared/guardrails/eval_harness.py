@@ -15,7 +15,7 @@ import asyncio
 import json
 from dataclasses import asdict, dataclass
 
-from guardrails.chain import run_chain
+from .chain import run_chain
 
 TEST_USER = "eval-harness@molli.test"
 SPACE_ID = "eval"
@@ -489,12 +489,9 @@ def _score(expected: str, actual: str, case_id: str) -> str:
 async def run_eval() -> list[EvalResult]:
     results: list[EvalResult] = []
 
-    from guardrails.fair_housing import reset_trigger_log
-
     for case in EVAL_CASES:
         # Each eval case gets a fresh user identity to prevent counter bleed
         case_user = f"eval-{case.id}@molli.test"
-        reset_trigger_log()
 
         chain_result = await run_chain(
             message=case.prompt,
