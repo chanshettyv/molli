@@ -18,23 +18,40 @@ from .base import Action, GuardrailVerdict
 # ---------------------------------------------------------------------------
 
 _FHA_PATTERNS: list[str] = [
+    # Explicit FHA references
     r"\bprotected class(es)?\b",
     r"\bfair housing\b",
     r"\bfha\b",
+    # Tenant decision language
     r"\bdeny(ing)? (an? )?(applicant|tenant|renter)\b",
     r"\brefuse (to rent|an? applicant)\b",
     r"\bscreening criter(ia|ion)\b",
     r"\bapplicant denial\b",
     r"\bdisqualif(y|ied|ying) (an? )?(applicant|tenant)\b",
-    r"\b(race|religion|national origin|sex|familial status|disability) (and|in) (housing|renting|leasing)\b",
     r"\badverse action\b",
     r"\bdenial (letter|notice|reason)\b",
+    # FHA protected classes — any standalone mention triggers the guardrail;
+    # Molli must never engage with these topics regardless of available info.
+    r"\brace\b",
+    r"\breligion\b",
+    r"\bnational origin\b",
+    r"\bfamilial status\b",
+    r"\b(disability|handicap)\b",
+    r"\bsex\b",
+    r"\bsexual orientation\b",
+    r"\bgender identity\b",
+    r"\bsource of income\b",
 ]
 
-# Exclusion patterns — benign uses of otherwise triggering words
+# Exclusion patterns — benign uses of otherwise triggering words.
+# Checked BEFORE trigger patterns; a match here always allows.
 _EXCLUSION_PATTERNS: list[str] = [
-    r"\bgrace hill\b",  # training platform, not a person
+    r"\bgrace hill\b",  # training platform
     r"\bscreening (call|interview|meeting|session)\b",  # job interviews
+    r"\bsexual harassment\b",  # HR topic, not FHA
+    r"\breligious (holiday|accommodation|observance|leave|exemption)\b",  # HR/EEO
+    r"\brace condition\b",  # software term
+    r"\bdisability (insurance|benefit|claim|leave)\b",  # HR/benefits
 ]
 
 CANNED_RESPONSE = (

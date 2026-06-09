@@ -25,6 +25,7 @@ from .data_priv import DataPrivacyGuardrail, redact_pii
 from .escalation import EscalationGuardrail
 from .fair_housing import FairHousingGuardrail
 from .fcra import FCRAGuardrail
+from .llm_classifier import FHAFCRAClassifier
 from .mental_health import MentalHealthGuardrail
 from .osha import OSHAGuardrail
 
@@ -75,9 +76,10 @@ def _log_verdict(
 _GUARDRAIL_CHAIN: list[Guardrail] = [
     MentalHealthGuardrail(),  # highest priority
     OSHAGuardrail(),  # Tier 1 emergency second
-    FairHousingGuardrail(),  # FHA third
-    FCRAGuardrail(),  # FCRA fourth
-    DataPrivacyGuardrail(),  # Data Privacy (BLOCK) fifth; REDACT handled after
+    FairHousingGuardrail(),  # FHA regex — fast path
+    FCRAGuardrail(),  # FCRA regex — fast path
+    FHAFCRAClassifier(),  # LLM semantic fallback (only reached if both regex pass)
+    DataPrivacyGuardrail(),  # Data Privacy (BLOCK); REDACT handled after
     EscalationGuardrail(),  # Escalation last
 ]
 

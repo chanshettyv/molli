@@ -20,13 +20,23 @@ from .base import Action, GuardrailVerdict
 _SUBCATEGORY_PATTERNS: dict[str, list[str]] = {
     "background_check": [
         r"\bbackground check\b",
-        r"\bcriminal (history|record|background)\b",
+        r"\bbackground screening\b",
+        r"\bcriminal (history|record|background|offense|charge)\b",
         r"\brun a (background|check)\b",
         r"\bwhat shows up on\b",
         r"\bbackground check results\b",
         r"\bwhere do i find the background check\b",
         r"\bfelony\b",
-        r"\bconviction\b",
+        r"\bconvictions?\b",
+        r"\bmisdemeanor\b",
+        r"\barrest (record|history)\b",
+        r"\bpending (charge|charges|case)\b",
+        r"\bsex offender\b",
+        r"\bconsumer report\b",  # FCRA's formal term
+        r"\bconsumer reporting agency\b",
+        r"\btenant screening (report|service|company)\b",
+        r"\bcredit bureau\b",
+        r"\b(checkr|transunion|equifax|experian)\b",  # screening/credit bureaus
     ],
     "credit_report": [
         r"\bcredit (report|score|check|pull|history)\b",
@@ -35,6 +45,10 @@ _SUBCATEGORY_PATTERNS: dict[str, list[str]] = {
         r"\bread a credit report\b",
         r"\bhard (and )?soft credit pull\b",
         r"\bsoft credit pull\b",
+        r"\bfico\b",
+        r"\bbankruptcy\b",
+        r"\bcollection account\b",
+        r"\bdebt (to income|ratio|collection)\b",
     ],
     "adverse_action": [
         r"\badverse action\b",
@@ -47,12 +61,14 @@ _SUBCATEGORY_PATTERNS: dict[str, list[str]] = {
     "screening_criteria": [
         r"\bautomatic(ally)? reject\b",
         r"\bpolicy on evictions?\b",
-        r"\beviction on (their )?record\b",
+        r"\beviction (on (their )?record|history|record)\b",
+        r"\bprior evictions?\b",
         r"\bscreening (criteria|policy|standards?)\b",
         r"\bshould we approve them\b",
         r"\bshould we (deny|reject|decline)\b",
         r"\bdoes fcra apply\b",
-        r"\bfcra (scope|apply|applies)\b",
+        r"\bfcra\b",  # any FCRA mention
+        r"\brental (history|screening)\b",
     ],
 }
 
