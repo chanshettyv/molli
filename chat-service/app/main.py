@@ -51,8 +51,10 @@ app = FastAPI(title="Molli chat-service", version="0.1.0")
 # The service account Google Chat uses to sign requests to your app.
 CHAT_ISSUER = "chat@system.gserviceaccount.com"
 
-# Your GCP project number — the audience Google Chat sets on the token.
-EXPECTED_AUDIENCE = get_settings().gcp_project_number
+# For HTTP-endpoint Chat apps, Google sets the JWT audience to the full
+# service URL. For Apps Script apps it's the project number. Prefer the URL.
+_s = get_settings()
+EXPECTED_AUDIENCE = _s.chat_service_url or _s.gcp_project_number
 
 _request_adapter = google_requests.Request()
 
@@ -115,7 +117,7 @@ async def chat_event(request: Request, _: None = Depends(verify_chat_request)) -
             reply_text, _ = await scan_gemini_output(reply_text, user_email, space_id, session_id)
         else:
             reply_text = (
-                f"Hi {user_name or 'there'}! I'm Molli. " "I'm still being built — check back soon."
+                f"Hi {user_name or 'there'}! I'm Molli. I'm still being built — check back soon."
             )
 
         if chain_result.append_to_response:

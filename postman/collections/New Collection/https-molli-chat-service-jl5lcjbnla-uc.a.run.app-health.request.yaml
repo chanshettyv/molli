@@ -1,0 +1,5 @@
+$kind: http-request
+name: https://molli-chat-service-jl5lcjbnla-uc.a.run.app/health
+url: https://molli-chat-service-jl5lcjbnla-uc.a.run.app/health
+method: GET
+order: 1781018959178

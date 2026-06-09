@@ -24,6 +24,11 @@ class Settings(BaseModel):
     vector_index_id: str | None = None
     vector_index_endpoint: str | None = None
     firestore_database: str = "(default)"
+    # Google Chat HTTP endpoint — used as the expected JWT audience.
+    # Set to the full Cloud Run service URL, e.g.
+    # https://molli-chat-service-719635778769.us-central1.run.app
+    chat_service_url: str | None = None
+
     # Gemini / Vertex AI (chat-service generative Q&A)
     use_gemini: bool = True
     gemini_model: str = "gemini-2.5-flash"
@@ -52,6 +57,7 @@ def get_settings() -> Settings:
         vector_index_id=os.environ.get("VECTOR_INDEX_ID"),
         freshservice_domain=os.environ.get("FRESHSERVICE_DOMAIN", "tpco-org"),
         vector_index_endpoint=os.environ.get("VECTOR_INDEX_ENDPOINT"),
+        chat_service_url=os.environ.get("CHAT_SERVICE_URL"),
         use_gemini=os.environ.get("MOLLI_USE_GEMINI", "true").lower() != "false",
         gemini_model=os.environ.get("GEMINI_MODEL", "gemini-2.5-flash"),
         gemini_temperature=float(os.environ.get("GEMINI_TEMPERATURE", "0.4")),

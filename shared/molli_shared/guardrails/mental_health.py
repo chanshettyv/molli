@@ -12,6 +12,7 @@ be updated without a redeploy (pending Sally Sousa confirmation).
 from __future__ import annotations
 
 import re
+from functools import lru_cache
 
 from molli_shared.config import get_secret, get_settings
 
@@ -65,22 +66,21 @@ _EXCLUSION_PATTERNS: list[str] = [
     r"\bkilling it\b",  # positive idiom
 ]
 
-# EAP canned response — loaded from Secret Manager key: eap-contact-block.
-# Falls back to a placeholder if the secret isn't provisioned yet (dev / CI).
-try:
-    EAP_CONTACT_BLOCK = get_secret("eap-contact-block", get_settings().gcp_project_id)
-except Exception:
-    EAP_CONTACT_BLOCK = "(EAP contact details — see HR for current information)"
 
-CANNED_RESPONSE = f"""I'm really glad you reached out, and I want to make sure you get the right support.
-
-Please connect with Preiss's Employee Assistance Program (EAP) — they offer free, confidential support 24/7:
-
-EAP Contact: {EAP_CONTACT_BLOCK}
-
-If you're in immediate danger, please call or text 988 (Suicide & Crisis Lifeline) or go to your nearest emergency room.
-
-You don't have to navigate this alone. 💙"""
+@lru_cache(maxsize=1)
+def _canned_response() -> str:
+    """Build the EAP canned response, loading the contact block from Secret Manager on first call."""
+    try:
+        eap = get_secret("eap-contact-block", get_settings().gcp_project_id)
+    except Exception:
+        eap = "(EAP contact details — see HR for current information)"
+    return (
+        "I'm really glad you reached out, and I want to make sure you get the right support.\n\n"
+        "Please connect with Preiss's Employee Assistance Program (EAP) — they offer free, confidential support 24/7:\n\n"
+        f"EAP Contact: {eap}\n\n"
+        "If you're in immediate danger, please call or text 988 (Suicide & Crisis Lifeline) or go to your nearest emergency room.\n\n"
+        "You don't have to navigate this alone. 💙"
+    )
 
 
 def _matches_any(text: str, patterns: list[str]) -> str | None:
@@ -119,7 +119,7 @@ class MentalHealthGuardrail:
                 action=Action.ESCALATE,
                 category="MENTAL_HEALTH",
                 reason=f"Mental health signal detected: {signal_type} | pattern: {matched}",
-                canned_response=CANNED_RESPONSE,
+                canned_response=_canned_response(),
             )
 
         return GuardrailVerdict(
