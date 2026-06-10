@@ -43,6 +43,104 @@ def _chat_reply(text: str) -> dict[str, Any]:
     }
 
 
+def _chat_dialog(
+    *,
+    summary: str = "",
+    description: str = "",
+    department: str = "IT",
+    priority: str = "2",
+) -> dict[str, Any]:
+    """Wrap a ticket-edit dialog in the Chat API event-format response envelope.
+
+    Pass the values Gemini extracted from the `create_ticket` call to pre-fill
+    each widget. Every field stays editable; the user submits with the button,
+    which fires the `submit_ticket` action back to the POST / endpoint.
+    """
+
+    def _dropdown_items(options: list[tuple[str, str]], selected_value: str):
+        return [
+            {"text": text, "value": value, "selected": value == selected_value}
+            for text, value in options
+        ]
+
+    return {
+        "hostAppDataAction": {
+            "chatDataAction": {
+                "dialogAction": {
+                    "dialog": {
+                        "body": {
+                            "sections": [
+                                {
+                                    "header": "Review and edit your ticket",
+                                    "widgets": [
+                                        {
+                                            "textInput": {
+                                                "name": "summary",
+                                                "label": "Summary",
+                                                "value": summary,
+                                            }
+                                        },
+                                        {
+                                            "textInput": {
+                                                "name": "description",
+                                                "label": "Details",
+                                                "type": "MULTIPLE_LINE",
+                                                "value": description,
+                                            }
+                                        },
+                                        {
+                                            "selectionInput": {
+                                                "name": "department",
+                                                "label": "Department",
+                                                "type": "DROPDOWN",
+                                                "items": _dropdown_items(
+                                                    [
+                                                        ("IT", "IT"),
+                                                        ("Operations", "Ops"),
+                                                        ("Human Resources", "HR"),
+                                                    ],
+                                                    department,
+                                                ),
+                                            }
+                                        },
+                                        {
+                                            "selectionInput": {
+                                                "name": "priority",
+                                                "label": "Priority",
+                                                "type": "DROPDOWN",
+                                                "items": _dropdown_items(
+                                                    [
+                                                        ("Low", "1"),
+                                                        ("Medium", "2"),
+                                                        ("High", "3"),
+                                                    ],
+                                                    priority,
+                                                ),
+                                            }
+                                        },
+                                        {
+                                            "buttonList": {
+                                                "buttons": [
+                                                    {
+                                                        "text": "Create ticket",
+                                                        "onClick": {
+                                                            "action": {"function": "submit_ticket"}
+                                                        },
+                                                    }
+                                                ]
+                                            }
+                                        },
+                                    ],
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+
 log = structlog.get_logger()
 app = FastAPI(title="Molli chat-service", version="0.1.0")
 
@@ -60,6 +158,12 @@ async def chat_event(request: Request) -> dict[str, Any]:
 
     if event_type == "MESSAGE":
         user_text = message.get("text", "")
+        if user_text.strip().lower() == "/dialogtest":
+            return _chat_dialog(
+                summary="test ticket",
+                description="testing the dialog render",
+            )
+
         sender = message.get("sender", {})
         user_email = sender.get("email", "")
         user_name = sender.get("displayName", "")
