@@ -50,7 +50,7 @@ def _chat_dialog(
     department: str = "IT",
     priority: str = "2",
 ) -> dict[str, Any]:
-    """Open a ticket-edit dialog using the documented actionResponse DIALOG format.
+    """Open a ticket-edit dialog in the new Chat event (hostAppDataAction) format.
 
     Pass the values Gemini extracted from the `create_ticket` call to pre-fill
     each widget. Every field stays editable; submitting fires the
@@ -63,80 +63,73 @@ def _chat_dialog(
             for text, value in options
         ]
 
-    return {
-        "actionResponse": {
-            "type": "DIALOG",
-            "dialogAction": {
-                "dialog": {
-                    "body": {
-                        "sections": [
-                            {
-                                "header": "Review and edit your ticket",
-                                "widgets": [
-                                    {
-                                        "textInput": {
-                                            "name": "summary",
-                                            "label": "Summary",
-                                            "value": summary,
-                                        }
-                                    },
-                                    {
-                                        "textInput": {
-                                            "name": "description",
-                                            "label": "Details",
-                                            "type": "MULTIPLE_LINE",
-                                            "value": description,
-                                        }
-                                    },
-                                    {
-                                        "selectionInput": {
-                                            "name": "department",
-                                            "label": "Department",
-                                            "type": "DROPDOWN",
-                                            "items": _dropdown_items(
-                                                [
-                                                    ("IT", "IT"),
-                                                    ("Operations", "Ops"),
-                                                    ("Human Resources", "HR"),
-                                                ],
-                                                department,
-                                            ),
-                                        }
-                                    },
-                                    {
-                                        "selectionInput": {
-                                            "name": "priority",
-                                            "label": "Priority",
-                                            "type": "DROPDOWN",
-                                            "items": _dropdown_items(
-                                                [
-                                                    ("Low", "1"),
-                                                    ("Medium", "2"),
-                                                    ("High", "3"),
-                                                ],
-                                                priority,
-                                            ),
-                                        }
-                                    },
-                                    {
-                                        "buttonList": {
-                                            "buttons": [
-                                                {
-                                                    "text": "Create ticket",
-                                                    "onClick": {
-                                                        "action": {"function": "submit_ticket"}
-                                                    },
-                                                }
-                                            ]
-                                        }
-                                    },
+    dialog_body = {
+        "sections": [
+            {
+                "header": "Review and edit your ticket",
+                "widgets": [
+                    {
+                        "textInput": {
+                            "name": "summary",
+                            "label": "Summary",
+                            "value": summary,
+                        }
+                    },
+                    {
+                        "textInput": {
+                            "name": "description",
+                            "label": "Details",
+                            "type": "MULTIPLE_LINE",
+                            "value": description,
+                        }
+                    },
+                    {
+                        "selectionInput": {
+                            "name": "department",
+                            "label": "Department",
+                            "type": "DROPDOWN",
+                            "items": _dropdown_items(
+                                [
+                                    ("IT", "IT"),
+                                    ("Operations", "Ops"),
+                                    ("Human Resources", "HR"),
                                 ],
-                            }
-                        ]
-                    }
-                }
-            },
-        }
+                                department,
+                            ),
+                        }
+                    },
+                    {
+                        "selectionInput": {
+                            "name": "priority",
+                            "label": "Priority",
+                            "type": "DROPDOWN",
+                            "items": _dropdown_items(
+                                [
+                                    ("Low", "1"),
+                                    ("Medium", "2"),
+                                    ("High", "3"),
+                                ],
+                                priority,
+                            ),
+                        }
+                    },
+                    {
+                        "buttonList": {
+                            "buttons": [
+                                {
+                                    "text": "Create ticket",
+                                    "onClick": {"action": {"function": "submit_ticket"}},
+                                }
+                            ]
+                        }
+                    },
+                ],
+            }
+        ]
+    }
+
+    return {
+        "hostAppDataAction": {"chatDataAction": {"dialogAction": {"dialog": {"body": dialog_body}}}}
     }
 
 
@@ -188,27 +181,24 @@ async def health() -> dict[str, str]:
 @app.post("/")
 async def chat_event(request: Request) -> dict[str, Any]:
     event = await request.json()
-    log.info("raw_event", payload=event)
     event_type, message = _classify(event)
     log.info("chat_event_received", event_type=event_type)
-    invoked = (
-        event.get("commonEventObject", {}).get("invokedFunction")
-        or event.get("common", {}).get("invokedFunction")
-        or event.get("action", {}).get("actionMethodName")
-    )
-    if invoked == "open_ticket_dialog":
-        return _chat_dialog(
-            summary="test ticket",
-            description="testing the dialog render",
-        )
-    if invoked == "submit_ticket":
-        log.info("got_submit", body=event)  # inspect formInputs here
-        return _chat_reply("Got the submission (handler not wired yet).")
+
+    if event_type == "CARD_CLICKED":
+        payload = event.get("chat", {}).get("buttonClickedPayload", {})
+        log.info("button_click", payload=payload)  # TEMP: find the invoked-function key
+        invoked = payload.get("invokedFunction") or payload.get("function")
+        if invoked == "open_ticket_dialog":
+            return _chat_dialog(summary="test ticket", description="testing the dialog render")
+        if invoked == "submit_ticket":
+            log.info("got_submit", payload=event)
+            return _chat_reply("Got the submission (handler not wired yet).")
+        return {}
 
     if event_type == "MESSAGE":
         user_text = message.get("text", "")
         if user_text.strip().lower() == "/dialogtest":
-            return _chat_dialog_trigger_button()
+            return _chat_dialog(summary="test ticket", description="testing the dialog render")
         sender = message.get("sender", {})
         user_email = sender.get("email", "")
         user_name = sender.get("displayName", "")
