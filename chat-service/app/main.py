@@ -140,6 +140,42 @@ def _chat_dialog(
     }
 
 
+def _chat_dialog_trigger_button(text: str = "Click to open the ticket dialog") -> dict[str, Any]:
+    """Reply with a card button that opens the dialog when clicked.
+
+    Used for smoke-testing the dialog render without configuring a slash command.
+    The button fires the `open_ticket_dialog` action back to POST /.
+    """
+    return {
+        "cardsV2": [
+            {
+                "cardId": "dialog-trigger",
+                "card": {
+                    "sections": [
+                        {
+                            "widgets": [
+                                {"textParagraph": {"text": text}},
+                                {
+                                    "buttonList": {
+                                        "buttons": [
+                                            {
+                                                "text": "Open ticket form",
+                                                "onClick": {
+                                                    "action": {"function": "open_ticket_dialog"}
+                                                },
+                                            }
+                                        ]
+                                    }
+                                },
+                            ]
+                        }
+                    ]
+                },
+            }
+        ]
+    }
+
+
 log = structlog.get_logger()
 app = FastAPI(title="Molli chat-service", version="0.1.0")
 
@@ -152,17 +188,27 @@ async def health() -> dict[str, str]:
 @app.post("/")
 async def chat_event(request: Request) -> dict[str, Any]:
     event = await request.json()
+    log.info("raw_event", event=event)
     event_type, message = _classify(event)
     log.info("chat_event_received", event_type=event_type)
+    invoked = (
+        event.get("commonEventObject", {}).get("invokedFunction")
+        or event.get("common", {}).get("invokedFunction")
+        or event.get("action", {}).get("actionMethodName")
+    )
+    if invoked == "open_ticket_dialog":
+        return _chat_dialog(
+            summary="test ticket",
+            description="testing the dialog render",
+        )
+    if invoked == "submit_ticket":
+        log.info("got_submit", event=event)  # inspect formInputs here
+        return _chat_reply("Got the submission (handler not wired yet).")
 
     if event_type == "MESSAGE":
         user_text = message.get("text", "")
         if user_text.strip().lower() == "/dialogtest":
-            return _chat_dialog(
-                summary="test ticket",
-                description="testing the dialog render",
-            )
-
+            return _chat_dialog_trigger_button()
         sender = message.get("sender", {})
         user_email = sender.get("email", "")
         user_name = sender.get("displayName", "")
