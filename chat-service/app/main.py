@@ -50,11 +50,11 @@ def _chat_dialog(
     department: str = "IT",
     priority: str = "2",
 ) -> dict[str, Any]:
-    """Wrap a ticket-edit dialog in the Chat API event-format response envelope.
+    """Open a ticket-edit dialog using the documented actionResponse DIALOG format.
 
     Pass the values Gemini extracted from the `create_ticket` call to pre-fill
-    each widget. Every field stays editable; the user submits with the button,
-    which fires the `submit_ticket` action back to the POST / endpoint.
+    each widget. Every field stays editable; submitting fires the
+    `submit_ticket` action back to the POST / endpoint.
     """
 
     def _dropdown_items(options: list[tuple[str, str]], selected_value: str):
@@ -64,79 +64,78 @@ def _chat_dialog(
         ]
 
     return {
-        "hostAppDataAction": {
-            "chatDataAction": {
-                "dialogAction": {
-                    "dialog": {
-                        "body": {
-                            "sections": [
-                                {
-                                    "header": "Review and edit your ticket",
-                                    "widgets": [
-                                        {
-                                            "textInput": {
-                                                "name": "summary",
-                                                "label": "Summary",
-                                                "value": summary,
-                                            }
-                                        },
-                                        {
-                                            "textInput": {
-                                                "name": "description",
-                                                "label": "Details",
-                                                "type": "MULTIPLE_LINE",
-                                                "value": description,
-                                            }
-                                        },
-                                        {
-                                            "selectionInput": {
-                                                "name": "department",
-                                                "label": "Department",
-                                                "type": "DROPDOWN",
-                                                "items": _dropdown_items(
-                                                    [
-                                                        ("IT", "IT"),
-                                                        ("Operations", "Ops"),
-                                                        ("Human Resources", "HR"),
-                                                    ],
-                                                    department,
-                                                ),
-                                            }
-                                        },
-                                        {
-                                            "selectionInput": {
-                                                "name": "priority",
-                                                "label": "Priority",
-                                                "type": "DROPDOWN",
-                                                "items": _dropdown_items(
-                                                    [
-                                                        ("Low", "1"),
-                                                        ("Medium", "2"),
-                                                        ("High", "3"),
-                                                    ],
-                                                    priority,
-                                                ),
-                                            }
-                                        },
-                                        {
-                                            "buttonList": {
-                                                "buttons": [
-                                                    {
-                                                        "text": "Create ticket",
-                                                        "onClick": {
-                                                            "action": {"function": "submit_ticket"}
-                                                        },
-                                                    }
-                                                ]
-                                            }
-                                        },
-                                    ],
-                                }
-                            ]
-                        }
+        "actionResponse": {
+            "type": "DIALOG",
+            "dialogAction": {
+                "dialog": {
+                    "body": {
+                        "sections": [
+                            {
+                                "header": "Review and edit your ticket",
+                                "widgets": [
+                                    {
+                                        "textInput": {
+                                            "name": "summary",
+                                            "label": "Summary",
+                                            "value": summary,
+                                        }
+                                    },
+                                    {
+                                        "textInput": {
+                                            "name": "description",
+                                            "label": "Details",
+                                            "type": "MULTIPLE_LINE",
+                                            "value": description,
+                                        }
+                                    },
+                                    {
+                                        "selectionInput": {
+                                            "name": "department",
+                                            "label": "Department",
+                                            "type": "DROPDOWN",
+                                            "items": _dropdown_items(
+                                                [
+                                                    ("IT", "IT"),
+                                                    ("Operations", "Ops"),
+                                                    ("Human Resources", "HR"),
+                                                ],
+                                                department,
+                                            ),
+                                        }
+                                    },
+                                    {
+                                        "selectionInput": {
+                                            "name": "priority",
+                                            "label": "Priority",
+                                            "type": "DROPDOWN",
+                                            "items": _dropdown_items(
+                                                [
+                                                    ("Low", "1"),
+                                                    ("Medium", "2"),
+                                                    ("High", "3"),
+                                                ],
+                                                priority,
+                                            ),
+                                        }
+                                    },
+                                    {
+                                        "buttonList": {
+                                            "buttons": [
+                                                {
+                                                    "text": "Create ticket",
+                                                    "onClick": {
+                                                        "action": {"function": "submit_ticket"}
+                                                    },
+                                                }
+                                            ]
+                                        }
+                                    },
+                                ],
+                            }
+                        ]
                     }
                 }
-            }
+            },
         }
     }
 
