@@ -133,39 +133,45 @@ def _chat_dialog(
     }
 
 
-def _chat_dialog_trigger_button(text: str = "Click to open the ticket dialog") -> dict[str, Any]:
-    """Reply with a card button that opens the dialog when clicked.
-
-    Used for smoke-testing the dialog render without configuring a slash command.
-    The button fires the `open_ticket_dialog` action back to POST /.
-    """
+def _chat_dialog_trigger_button(text: str = "Tap to open the ticket dialog") -> dict[str, Any]:
+    """Reply with a card button that opens the dialog when clicked (smoke test)."""
     return {
-        "cardsV2": [
-            {
-                "cardId": "dialog-trigger",
-                "card": {
-                    "sections": [
-                        {
-                            "widgets": [
-                                {"textParagraph": {"text": text}},
-                                {
-                                    "buttonList": {
-                                        "buttons": [
-                                            {
-                                                "text": "Open ticket form",
-                                                "onClick": {
-                                                    "action": {"function": "open_ticket_dialog"}
+        "hostAppDataAction": {
+            "chatDataAction": {
+                "createMessageAction": {
+                    "message": {
+                        "cardsV2": [
+                            {
+                                "cardId": "dialog-trigger",
+                                "card": {
+                                    "sections": [
+                                        {
+                                            "widgets": [
+                                                {"textParagraph": {"text": text}},
+                                                {
+                                                    "buttonList": {
+                                                        "buttons": [
+                                                            {
+                                                                "text": "Open ticket form",
+                                                                "onClick": {
+                                                                    "action": {
+                                                                        "function": "open_ticket_dialog"
+                                                                    }
+                                                                },
+                                                            }
+                                                        ]
+                                                    }
                                                 },
-                                            }
-                                        ]
-                                    }
+                                            ]
+                                        }
+                                    ]
                                 },
-                            ]
-                        }
-                    ]
-                },
+                            }
+                        ]
+                    }
+                }
             }
-        ]
+        }
     }
 
 
@@ -186,7 +192,7 @@ async def chat_event(request: Request) -> dict[str, Any]:
 
     if event_type == "CARD_CLICKED":
         payload = event.get("chat", {}).get("buttonClickedPayload", {})
-        log.info("button_click", payload=payload)  # TEMP: find the invoked-function key
+        log.info("button_click", body=payload)  # TEMP: confirm the invoked-function key
         invoked = payload.get("invokedFunction") or payload.get("function")
         if invoked == "open_ticket_dialog":
             return _chat_dialog(summary="test ticket", description="testing the dialog render")
@@ -198,7 +204,7 @@ async def chat_event(request: Request) -> dict[str, Any]:
     if event_type == "MESSAGE":
         user_text = message.get("text", "")
         if user_text.strip().lower() == "/dialogtest":
-            return _chat_dialog(summary="test ticket", description="testing the dialog render")
+            return _chat_dialog_trigger_button()
         sender = message.get("sender", {})
         user_email = sender.get("email", "")
         user_name = sender.get("displayName", "")
