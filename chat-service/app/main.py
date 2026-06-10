@@ -188,6 +188,7 @@ async def health() -> dict[str, str]:
 @app.post("/")
 async def chat_event(request: Request) -> dict[str, Any]:
     event = await request.json()
+    log.info("received_chat_event", event=event)
     event_type, message = _classify(event)
     log.info("chat_event_received", event_type=event_type)
 
