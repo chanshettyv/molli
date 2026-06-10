@@ -155,7 +155,8 @@ def _chat_dialog_trigger_button(text: str = "Tap to open the ticket dialog") -> 
                                                                 "text": "Open ticket form",
                                                                 "onClick": {
                                                                     "action": {
-                                                                        "function": "open_ticket_dialog"
+                                                                        "function": "open_ticket_dialog",
+                                                                        "interaction": "OPEN_DIALOG",
                                                                     }
                                                                 },
                                                             }
