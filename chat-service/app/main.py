@@ -188,7 +188,7 @@ async def health() -> dict[str, str]:
 @app.post("/")
 async def chat_event(request: Request) -> dict[str, Any]:
     event = await request.json()
-    log.info("raw_event", event=event)
+    log.info("raw_event", payload=event)
     event_type, message = _classify(event)
     log.info("chat_event_received", event_type=event_type)
     invoked = (
@@ -202,7 +202,7 @@ async def chat_event(request: Request) -> dict[str, Any]:
             description="testing the dialog render",
         )
     if invoked == "submit_ticket":
-        log.info("got_submit", event=event)  # inspect formInputs here
+        log.info("got_submit", body=event)  # inspect formInputs here
         return _chat_reply("Got the submission (handler not wired yet).")
 
     if event_type == "MESSAGE":
