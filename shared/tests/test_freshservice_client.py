@@ -261,7 +261,7 @@ class TestLookupRequester:
             result = await client.lookup_requester("user@preiss.com")
         assert result is not None
         assert result.id == 5000387689
-        assert result.email == "user@preiss.com"
+        assert result.primary_email == "user@preiss.com"
 
     @pytest.mark.asyncio
     async def test_no_match_returns_none(self, httpx_mock, client):

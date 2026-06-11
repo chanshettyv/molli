@@ -120,7 +120,7 @@ class TicketCreatePayload(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     # Required by Freshservice
-    primary_email: EmailStr
+    email: EmailStr
     subject: str = Field(min_length=1, max_length=255)
     description: str = Field(min_length=1)
 
@@ -295,7 +295,7 @@ class TicketDraft(BaseModel):
             priority_value = 2
 
         return TicketCreatePayload(
-            primary_email=resolved("email"),
+            email=resolved("email"),
             subject=resolved("subject"),
             description=resolved("description"),
             group_id=resolved("group_id"),

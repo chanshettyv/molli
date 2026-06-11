@@ -141,7 +141,7 @@ def requester_response() -> dict[str, Any]:
                 "id": 5000387689,
                 "first_name": "Test",
                 "last_name": "User",
-                "email": "user@preiss.com",
+                "primary_email": "user@preiss.com",
                 "active": True,
                 "address": None,
                 "department_ids": [],

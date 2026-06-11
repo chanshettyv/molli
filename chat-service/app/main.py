@@ -20,6 +20,9 @@ from app.gemini_client import ask_gemini
 def _classify(event: dict[str, Any]) -> tuple[str, dict[str, Any]]:
     """Return (event_type, message_dict) for the Chat API event envelope."""
     chat = event.get("chat", {})
+
+    if "appCommandPayload" in chat:
+        return "APP_COMMAND", chat["appCommandPayload"].get("message", {})
     if "messagePayload" in chat:
         return "MESSAGE", chat["messagePayload"].get("message", {})
     if "addedToSpacePayload" in chat:
@@ -28,7 +31,6 @@ def _classify(event: dict[str, Any]) -> tuple[str, dict[str, Any]]:
         return "REMOVED_FROM_SPACE", {}
     if "buttonClickedPayload" in chat:
         return "CARD_CLICKED", {}
-    # Legacy fallback, in case config ever changes
     if "type" in event:
         return event["type"], event.get("message", {})
     return "UNKNOWN", {}
@@ -193,6 +195,13 @@ async def chat_event(request: Request) -> dict[str, Any]:
     log.info("received_chat_event", payload=event)
     event_type, message = _classify(event)
     log.info("chat_event_received", event_type=event_type)
+    if event_type == "APP_COMMAND":
+        meta = event.get("chat", {}).get("appCommandPayload", {}).get("appCommandMetadata", {})
+        command_id = str(meta.get("appCommandId", ""))
+        log.info("app_command", command_id=command_id)
+        if command_id == "1":  # /newticket
+            return _chat_dialog(summary="test ticket", description="testing the dialog render")
+        return _chat_reply("Command not recognized.")
 
     if event_type == "CARD_CLICKED":
         payload = event.get("chat", {}).get("buttonClickedPayload", {})

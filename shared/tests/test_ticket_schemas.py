@@ -194,7 +194,7 @@ class TestTicketCreatePayload:
 
 class TestRequesterRecord:
     def test_minimal_valid(self):
-        record = RequesterRecord(id=5000387689, email="user@preiss.com")
+        record = RequesterRecord(id=5000387689, primary_email="user@preiss.com")
         assert record.active is True
 
     def test_extra_fields_ignored(self):
@@ -202,7 +202,7 @@ class TestRequesterRecord:
         record = RequesterRecord.model_validate(
             {
                 "id": 5000387689,
-                "email": "user@preiss.com",
+                "primary_email": "user@preiss.com",
                 "first_name": "Test",
                 "last_name": "User",
                 "department_ids": [1, 2],
