@@ -57,7 +57,9 @@ def _chat_dialog(
     `submit_ticket` action back to the POST / endpoint.
     """
 
-    def _dropdown_items(options: list[tuple[str, str]], selected_value: str):
+    def _dropdown_items(
+        options: list[tuple[str, str]], selected_value: str
+    ) -> list[dict[str, object]]:
         return [
             {"text": text, "value": value, "selected": value == selected_value}
             for text, value in options
@@ -203,6 +205,11 @@ async def chat_event(request: Request) -> dict[str, Any]:
         return {}
 
     if event_type == "MESSAGE":
+        # Slash command arrives with the command metadata on the message.
+        slash = message.get("slashCommand") or message.get("appCommand") or {}
+        command_id = str(slash.get("commandId", ""))
+        if command_id == "1":  # the Command Id you set for /newticket
+            return _chat_dialog(summary="test ticket", description="testing the dialog render")
         user_text = message.get("text", "")
         if user_text.strip().lower() == "/dialogtest":
             return _chat_dialog_trigger_button()
