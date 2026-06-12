@@ -142,8 +142,8 @@ class Article(_D360Model):
     title: str
     slug: str | None = None
     description: str | None = None
-    html_content: str = ""
-    content: str = ""
+    html_content: str | None = ""
+    content: str | None = ""
     status: int
     hidden: bool = False
     content_type: int | None = None
@@ -170,7 +170,7 @@ class Article(_D360Model):
         """The content to chunk/embed. Preiss Central articles carry their body
         in ``html_content`` (``content`` is typically empty); fall back to
         ``content`` if html is absent."""
-        return self.html_content or self.content
+        return self.html_content or self.content or ""
 
 
 # Pydantic 2 resolves the forward reference in ``child_categories`` here.

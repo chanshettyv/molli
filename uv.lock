@@ -1656,6 +1656,7 @@ version = "0.1.0"
 source = { editable = "sync-job" }
 dependencies = [
     { name = "google-cloud-aiplatform" },
+    { name = "google-cloud-firestore" },
     { name = "molli-shared" },
     { name = "tiktoken" },
 ]
@@ -1663,6 +1664,7 @@ dependencies = [
 [package.metadata]
 requires-dist = [
     { name = "google-cloud-aiplatform", specifier = ">=1.60" },
+    { name = "google-cloud-firestore", specifier = ">=2.27.0" },
     { name = "molli-shared", editable = "shared" },
     { name = "tiktoken", specifier = ">=0.7" },
 ]

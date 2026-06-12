@@ -289,3 +289,138 @@ For dev, undeploy the index when not actively testing:
       --region=us-central1 --project=molli-dev
 
 Redeploying takes ~30 min, so weigh idle cost vs. convenience.
+
+
+## Document360 sync job (sync-job)
+
+The nightly knowledge pipeline: Document360 → chunk → embed → Vertex AI Vector
+Search. Built and deployed in `molli-dev` during Sprint 2.
+
+### What it does
+
+1. Reads a watermark from Firestore (collection `sync_state`, doc `document360`).
+   No watermark → full sync.
+2. Lists articles changed since the watermark (client-side filter — D360 has no
+   server-side modified-since), plus any articles that failed to fetch on the
+   previous run (retry list, also in Firestore).
+3. Fetches each article individually (fault-tolerant: one bad article can't crash
+   the run), strips HTML, chunks by heading (~750 tokens), embeds via
+   `text-embedding-004` (768-dim), and upserts to Vector Search with citation
+   metadata (article id, title, URL, category, heading) as datapoint restricts.
+4. Advances the watermark and persists the set of articles that failed this run.
+
+Datapoint IDs are `{article_id}::{ordinal}` — deterministic, so re-runs overwrite
+rather than duplicate (idempotent).
+
+### Resource IDs (molli-dev)
+
+| Resource | Value |
+|---|---|
+| Cloud Run job | `molli-sync-job` (us-central1) |
+| Container image | `us-central1-docker.pkg.dev/molli-dev/molli/sync-job:latest` |
+| Runtime service account | `molli-sync-job@molli-dev.iam.gserviceaccount.com` |
+| Cloud Scheduler job | `molli-sync-daily` (us-central1) |
+| Schedule | `0 7 * * *` America/New_York (7am ET daily) |
+| Firestore watermark | collection `sync_state`, doc `document360` |
+
+### Running locally
+
+```
+cd sync-job
+uv run python -m sync_job.main                  # incremental (uses Firestore watermark)
+uv run python -m sync_job.main --skip-watermark # full sync, no Firestore
+uv run python -m sync_job.main --limit 200      # first N articles (testing)
+uv run python -m sync_job.query_test "your question here"
+```
+
+Local runs need `.env` (GCP_PROJECT_ID, GCP_PROJECT_NUMBER, VECTOR_INDEX_ID,
+VECTOR_INDEX_ENDPOINT, FRESHSERVICE_DOMAIN) and ADC credentials
+(`gcloud auth application-default login`). The D360 API key comes from Secret
+Manager (`document360-api-key`), not `.env`.
+
+### Deploying (reproduce for prod)
+
+```
+# 1. Build + push the image (from repo root; Dockerfile is there)
+gcloud builds submit --tag us-central1-docker.pkg.dev/molli-dev/molli/sync-job:latest --project molli-dev
+
+# 2. Create/update the Cloud Run job
+gcloud run jobs update molli-sync-job \
+  --image=us-central1-docker.pkg.dev/molli-dev/molli/sync-job:latest \
+  --region=us-central1 \
+  --service-account=molli-sync-job@molli-dev.iam.gserviceaccount.com \
+  --set-env-vars="GCP_PROJECT_ID=molli-dev,GCP_PROJECT_NUMBER=719635778769,VECTOR_INDEX_ID=3890822006001631232,VECTOR_INDEX_ENDPOINT=5864348620836306944,FRESHSERVICE_DOMAIN=tpco-org" \
+  --task-timeout=3600 --max-retries=1 --memory=2Gi --project=molli-dev
+
+# 3. Create the scheduler (one-time)
+gcloud scheduler jobs create http molli-sync-daily \
+  --location=us-central1 --schedule="0 7 * * *" --time-zone="America/New_York" \
+  --uri="https://us-central1-run.googleapis.com/apis/run.googleapis.com/v1/namespaces/molli-dev/jobs/molli-sync-job:run" \
+  --http-method=POST \
+  --oauth-service-account-email=molli-sync-job@molli-dev.iam.gserviceaccount.com \
+  --project=molli-dev
+
+# 4. Manually trigger (test, or ad-hoc resync)
+gcloud run jobs execute molli-sync-job --region=us-central1 --project=molli-dev
+# or via scheduler:
+gcloud scheduler jobs run molli-sync-daily --location=us-central1 --project=molli-dev
+```
+
+### Required IAM (runtime service account `molli-sync-job`)
+
+- `roles/aiplatform.user` — embeddings + Vector Search upsert
+- `roles/datastore.user` — Firestore watermark
+- `roles/secretmanager.secretAccessor` — D360 API key
+- `roles/run.invoker` (on the job) — lets the scheduler trigger it
+
+**For prod:** provision all four on the prod sync-job SA from the start. In dev,
+the SA was initially created with only `aiplatform.user`; the other three had to
+be added during deploy.
+
+### Gotchas / things learned
+
+- **Cloud Build + default compute SA:** Cloud Build runs as the default compute
+  service account, which by default lacks `roles/storage.admin` and
+  `roles/artifactregistry.writer`. Both were granted in dev to unblock builds.
+  **For prod, prefer building as `molli-ci-deploy`** (which already has registry
+  write) via `gcloud builds submit --service-account`, rather than broadening the
+  compute SA.
+- **uv workspace in Docker:** the root `pyproject.toml` lists `chat-service` as a
+  workspace member. The sync-job image only copies `shared/` and `sync-job/`, so
+  `uv sync --all-packages` fails (can't find chat-service). Use
+  `uv sync --frozen --package sync-job` instead.
+- **`uv.lock` must be current** before building — the Dockerfile installs with
+  `--frozen`. After adding a dependency (e.g. `google-cloud-firestore`), commit
+  the updated lock or the build fails.
+- **PowerShell `Set-Content -Encoding UTF8` adds a BOM** that breaks Python on
+  Windows (`SyntaxError: invalid character '»'`). Use `utf8NoBOM` (PowerShell 6+)
+  or `[System.IO.File]::WriteAllText(...)`.
+- **Firestore is in us-east1**, everything else us-central1. Harmless for the
+  client, but note it for consistency.
+
+### Known limitations / follow-ups
+
+- **Query embedding task type:** `query_test.py` and the Embedder's `embed_query`
+  use `RETRIEVAL_QUERY` (correct). The bulk `embed()` uses `RETRIEVAL_DOCUMENT`
+  (correct for indexing). When chat-service embeds user queries in Phase 2, it
+  MUST use `RETRIEVAL_QUERY` — the Embedder lives in sync-job today and may need
+  to move to `shared` for chat-service to reuse it.
+- **Retrieval quality is untuned.** Results are semantically sensible but not
+  optimized. Title-only (`::0`) chunks underperform; consider prepending headings
+  to body chunks or a re-ranking step in Phase 2.
+- **Persistently failing articles (escalate to Aswin/Kovai):** a handful of D360
+  articles return 429 on every fetch attempt regardless of rate (likely oversized
+  or broken server-side). The job logs and skips them, and retries them next run.
+  If the failed-article list in Firestore grows and stays large, those articles
+  need a human at Kovai to investigate — they will be missing from Molli's index
+  until fixed. CC Lane, Toni, Whitney on any D360 comms.
+- **Watermark + failed-list interaction:** failed articles are retried via the
+  persisted failed-IDs list, not the watermark (the watermark advances past them).
+  The list self-clears as articles succeed. If it only ever grows, that signals
+  genuinely broken articles, not transient throttling.
+- **D360 rate limiting:** the client (shared) now has a token-bucket limiter
+  (12 req/s, burst 5) + jittered backoff. The documented D360 limit is 1500/min,
+  but a short-window sub-limit causes 429s on bursts; the limiter smooths this.
+- **`remove_article` stale-chunk cleanup** was dropped in the batch-upsert
+  refactor. Matters only when a re-synced article shrinks (old higher-ordinal
+  chunks linger). Low priority; re-add if stale chunks become an issue.

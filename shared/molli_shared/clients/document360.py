@@ -43,6 +43,8 @@ Typical sync usage::
 from __future__ import annotations
 
 import asyncio
+import random
+import time
 from datetime import UTC, datetime
 from typing import Any
 
@@ -64,6 +66,37 @@ DEFAULT_BASE_URL = "https://apihub.us.document360.io/v2"
 _DEFAULT_CONCURRENCY = 4
 
 
+class _RateLimiter:
+    """Async token-bucket limiter that smooths request bursts.
+
+    D360's documented limit is 1500 req/min/IP, but it also appears to enforce a
+    short sliding-window sub-limit: a burst of concurrent requests can trip a 429
+    even while the per-minute average sits far below 1500. This limiter caps the
+    RATE at which requests may START, which is what prevents the bursts.
+
+    Default 20 req/sec = 1200 req/min, leaving headroom under the 1500 ceiling.
+    """
+
+    def __init__(self, rate_per_sec: float = 12.0, burst: int = 5) -> None:
+        self._rate = rate_per_sec
+        self._capacity = float(burst)
+        self._tokens = float(burst)
+        self._updated = time.monotonic()
+        self._lock = asyncio.Lock()
+
+    async def acquire(self) -> None:
+        async with self._lock:
+            now = time.monotonic()
+            elapsed = now - self._updated
+            self._updated = now
+            self._tokens = min(self._capacity, self._tokens + elapsed * self._rate)
+            if self._tokens < 1.0:
+                wait = (1.0 - self._tokens) / self._rate
+                await asyncio.sleep(wait)
+                self._tokens = 0.0
+            else:
+                self._tokens -= 1.0
+
 class Document360Error(RuntimeError):
     """Raised when the API returns a non-success envelope or HTTP error."""
 
@@ -82,6 +115,7 @@ class Document360Client:
         if not api_key:
             raise ValueError("api_key is required")
         self._max_retries = max_retries
+        self._limiter = _RateLimiter()
         self._client = httpx.AsyncClient(
             base_url=base_url,
             headers={
@@ -127,23 +161,24 @@ class Document360Client:
         last_exc: Exception | None = None
 
         for _attempt in range(self._max_retries):
+            await self._limiter.acquire()
             try:
                 response = await self._client.get(path, params=params or None)
             except httpx.TransportError as exc:  # network blip
                 last_exc = exc
                 await asyncio.sleep(backoff)
-                backoff = min(backoff * 2, 60.0)
+                backoff = min(backoff * 2, 60.0) * (0.5 + random.random())
                 continue
 
             if response.status_code == 429:
                 retry_after = _parse_retry_after(response.headers.get("Retry-After"))
                 await asyncio.sleep(retry_after if retry_after is not None else backoff)
-                backoff = min(backoff * 2, 60.0)
+                backoff = min(backoff * 2, 60.0) * (0.5 + random.random())
                 continue
 
             if response.status_code >= 500:
                 await asyncio.sleep(backoff)
-                backoff = min(backoff * 2, 60.0)
+                backoff = min(backoff * 2, 60.0) * (0.5 + random.random())
                 continue
 
             if response.status_code == 401:
@@ -308,3 +343,6 @@ def _parse_retry_after(value: str | None) -> float | None:
         return max(delta, 0.0)
     except (TypeError, ValueError):
         return None
+
+
+
