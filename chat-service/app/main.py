@@ -155,47 +155,65 @@ def _chat_dialog(
         ]
     }
 
+    # Dialogs use the flat actionResponse envelope (NOT hostAppDataAction —
+    # that family has no dialogAction field; confirmed against Google's
+    # contact-form-app sample).
     return {
-        "hostAppDataAction": {"chatDataAction": {"dialogAction": {"dialog": {"body": dialog_body}}}}
+        "actionResponse": {
+            "type": "DIALOG",
+            "dialogAction": {"dialog": {"body": dialog_body}},
+        }
+    }
+
+
+def _chat_dialog_close(*, ok: bool, message: str) -> dict[str, Any]:
+    """Close the dialog with a status banner after submit.
+
+    statusCode OK closes cleanly; INVALID_ARGUMENT keeps it open and shows the
+    error text. Matches the sample's submit_form success/error responses.
+    """
+    return {
+        "actionResponse": {
+            "type": "DIALOG",
+            "dialogAction": {
+                "actionStatus": {
+                    "statusCode": "OK" if ok else "INVALID_ARGUMENT",
+                    "userFacingMessage": message,
+                }
+            },
+        }
     }
 
 
 def _chat_dialog_trigger_button(text: str = "Tap to open the ticket dialog") -> dict[str, Any]:
-    """Reply with a card button that opens the dialog when clicked (smoke test)."""
+    """Reply with a message + button that opens the dialog when clicked.
+
+    The button (a message accessory) stays on the message envelope
+    (hostAppDataAction); only the dialog *response* uses actionResponse.
+    """
     return {
         "hostAppDataAction": {
             "chatDataAction": {
                 "createMessageAction": {
                     "message": {
-                        "cardsV2": [
+                        "text": text,
+                        "accessoryWidgets": [
                             {
-                                "cardId": "dialog-trigger",
-                                "card": {
-                                    "sections": [
+                                "buttonList": {
+                                    "buttons": [
                                         {
-                                            "widgets": [
-                                                {"textParagraph": {"text": text}},
-                                                {
-                                                    "buttonList": {
-                                                        "buttons": [
-                                                            {
-                                                                "text": "Open ticket form",
-                                                                "onClick": {
-                                                                    "action": {
-                                                                        "function": "open_ticket_dialog",
-                                                                        "interaction": "OPEN_DIALOG",
-                                                                    }
-                                                                },
-                                                            }
-                                                        ]
-                                                    }
-                                                },
-                                            ]
+                                            "text": "Open ticket form",
+                                            "onClick": {
+                                                "action": {
+                                                    "function": "open_ticket_dialog",
+                                                    "interaction": "OPEN_DIALOG",
+                                                }
+                                            },
                                         }
                                     ]
-                                },
+                                }
                             }
-                        ]
+                        ],
                     }
                 }
             }
@@ -287,8 +305,9 @@ async def chat_event(request: Request) -> dict[str, Any]:
     log.info("chat_event_received", event_type=event_type)
     if event_type == "APP_COMMAND":
         meta = event.get("chat", {}).get("appCommandPayload", {}).get("appCommandMetadata", {})
-        raw_id = meta.get("appCommandId", "")
-        command_id = str(int(float(raw_id)))
+        # Google sends appCommandId as a float (1.0); normalize to "1".
+        raw_id = meta.get("appCommandId", 0)
+        command_id = str(int(float(raw_id))) if raw_id else ""
         log.info("app_command", command_id=command_id)
         if command_id == "1":  # /newticket
             return _chat_dialog(summary="test ticket", description="testing the dialog render")
@@ -301,22 +320,28 @@ async def chat_event(request: Request) -> dict[str, Any]:
         if invoked == "open_ticket_dialog":
             return _chat_dialog(summary="test ticket", description="testing the dialog render")
 
+        # vvv NEW (ticket submit): wire the submit handler vvv
         if invoked == "submit_ticket":
-            sender = (
-                event.get("chat", {}).get("messagePayload", {}).get("message", {}).get("sender", {})
-            )
-            user_email = sender.get("email", "")
+            # Email lives on the appCommandPayload/messagePayload message sender,
+            # OR fall back to the top-level chat.user. Confirmed present in logs.
+            user_email = event.get("chat", {}).get("user", {}).get("email", "") or payload.get(
+                "message", {}
+            ).get("sender", {}).get("email", "")
             try:
                 ticket_payload = _build_ticket_payload(payload, user_email)
-                created = await PROVIDER.create_ticket(ticket_payload)  # await + create_ticket
             except (ValueError, DraftIncompleteError) as exc:
                 log.warning("ticket_build_failed", error=str(exc))
-                return _chat_reply(f"Couldn't create the ticket: {exc}")
-            except TicketingError as exc:  # provider failures
+                return _chat_dialog_close(ok=False, message=f"Couldn't create ticket: {exc}")
+            try:
+                created = await PROVIDER.create_ticket(ticket_payload)
+            except TicketingError as exc:
                 log.warning("ticket_create_failed", error=str(exc))
-                return _chat_reply("Sorry — I couldn't create the ticket. Please try again.")
+                return _chat_dialog_close(
+                    ok=False, message="Something went wrong creating the ticket. Try again."
+                )
             log.info("ticket_created", ticket_id=created.id)
-            return _chat_reply(f"Done — ticket #{created.id} created. We'll follow up shortly.")
+            return _chat_dialog_close(ok=True, message=f"Ticket #{created.id} created.")
+        # ^^^ NEW (ticket submit) ^^^
 
         return {}
 
