@@ -287,7 +287,8 @@ async def chat_event(request: Request) -> dict[str, Any]:
     log.info("chat_event_received", event_type=event_type)
     if event_type == "APP_COMMAND":
         meta = event.get("chat", {}).get("appCommandPayload", {}).get("appCommandMetadata", {})
-        command_id = str(meta.get("appCommandId", ""))
+        raw_id = meta.get("appCommandId", "")
+        command_id = str(int(float(raw_id)))
         log.info("app_command", command_id=command_id)
         if command_id == "1":  # /newticket
             return _chat_dialog(summary="test ticket", description="testing the dialog render")
@@ -323,6 +324,7 @@ async def chat_event(request: Request) -> dict[str, Any]:
         # Slash command arrives with the command metadata on the message.
         slash = message.get("slashCommand") or message.get("appCommand") or {}
         command_id = str(slash.get("commandId", ""))
+        command_id = int(float(raw_id))
         if command_id == "1":  # the Command Id you set for /newticket
             return _chat_dialog(summary="test ticket", description="testing the dialog render")
         user_text = message.get("text", "")
