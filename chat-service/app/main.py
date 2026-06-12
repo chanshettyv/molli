@@ -12,7 +12,8 @@ from typing import Any
 
 import structlog
 from fastapi import FastAPI, Request
-from molli_shared.clients.freshservice import MockTicketingProvider, TicketingProvider
+from molli_shared.clients.mock_ticketing import MockTicketingProvider
+from molli_shared.clients.ticketing import TicketingError, TicketingProvider
 from molli_shared.config import get_settings
 from molli_shared.guardrails.chain import run_chain, scan_gemini_output
 
@@ -299,24 +300,22 @@ async def chat_event(request: Request) -> dict[str, Any]:
         if invoked == "open_ticket_dialog":
             return _chat_dialog(summary="test ticket", description="testing the dialog render")
 
-        # vvv NEW (ticket submit): wire the submit handler vvv
         if invoked == "submit_ticket":
-            # Requester email: on a button-click event the sender may sit
-            # elsewhere in the envelope than on a message event. VERIFY against
-            # the logged payload above; fall through to empty if absent.
             sender = (
                 event.get("chat", {}).get("messagePayload", {}).get("message", {}).get("sender", {})
             )
             user_email = sender.get("email", "")
             try:
                 ticket_payload = _build_ticket_payload(payload, user_email)
+                created = await PROVIDER.create_ticket(ticket_payload)  # await + create_ticket
             except (ValueError, DraftIncompleteError) as exc:
                 log.warning("ticket_build_failed", error=str(exc))
                 return _chat_reply(f"Couldn't create the ticket: {exc}")
-            ref = PROVIDER.create(ticket_payload)
-            log.info("ticket_created", ref=ref)
-            return _chat_reply(f"Done — ticket {ref} created. We'll follow up shortly.")
-        # ^^^ NEW (ticket submit) ^^^
+            except TicketingError as exc:  # provider failures
+                log.warning("ticket_create_failed", error=str(exc))
+                return _chat_reply("Sorry — I couldn't create the ticket. Please try again.")
+            log.info("ticket_created", ticket_id=created.id)
+            return _chat_reply(f"Done — ticket #{created.id} created. We'll follow up shortly.")
 
         return {}
 
