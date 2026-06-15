@@ -14,6 +14,7 @@ from fastapi import FastAPI, Request
 from molli_shared.config import get_settings
 from molli_shared.guardrails.chain import run_chain, scan_gemini_output
 
+from app.cards import dialog
 from app.gemini_client import ask_gemini
 
 # Department dropdown value -> Freshservice group_id.
@@ -35,7 +36,7 @@ def _classify(event: dict[str, Any]) -> tuple[str, dict[str, Any]]:
     if "removedFromSpacePayload" in chat:
         return "REMOVED_FROM_SPACE", {}
     if "buttonClickedPayload" in chat:
-        return "CARD_CLICKED", {}
+        return "CARD_CLICKED", chat["buttonClickedPayload"]
     if "type" in event:
         return event["type"], event.get("message", {})
     return "UNKNOWN", {}
@@ -69,6 +70,8 @@ async def chat_event(request: Request) -> dict[str, Any]:
     if event_type == "MESSAGE":
         # Slash command arrives with the command metadata on the message.
         user_text = message.get("text", "")
+        if user_text == "dialogtest":
+            return dialog.trigger_card()
         sender = message.get("sender", {})
         user_email = sender.get("email", "")
         user_name = sender.get("displayName", "")
@@ -103,5 +106,23 @@ async def chat_event(request: Request) -> dict[str, Any]:
         return _chat_reply(
             "Hello! I'm Molli. I'll help you find answers from Preiss Central once I'm ready."
         )
+
+    if event_type == "CARD_CLICKED":
+        # `message` here is the buttonClickedPayload (see _classify).
+        function = (
+            message.get("button", {}).get("onClick", {}).get("action", {}).get("function", "")
+        )
+
+        if function == "openInitialDialog":
+            return dialog.open_dialog()
+
+        if function == "submitNameDialog":
+            inputs = message.get("commonEventObject", {}).get("formInputs", {})
+            name = inputs.get("contactName", {}).get("stringInputs", {}).get("value", [""])[0]
+            log.info("dialog_submit_received", name=name)
+            return dialog.submit_notification(name)
+
+        log.info("unhandled_card_click", function=function)
+        return {}
 
     return {}
