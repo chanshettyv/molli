@@ -63,49 +63,47 @@ def trigger_card() -> dict[str, Any]:
 def open_dialog() -> dict[str, Any]:
     """Response to the openInitialDialog click: push the name-input dialog."""
     return {
-        "renderActions": {
-            "action": {
-                "navigations": [
-                    {
-                        "pushCard": {
-                            "sections": [
-                                {
-                                    "header": "Enter your name",
-                                    "widgets": [
-                                        {
-                                            "textInput": {
-                                                "label": "Name",
-                                                "type": "SINGLE_LINE",
-                                                "name": "contactName",
-                                            }
-                                        },
-                                        {
-                                            "buttonList": {
-                                                "buttons": [
-                                                    {
-                                                        "text": "Submit",
-                                                        "onClick": {
-                                                            "action": {
-                                                                "function": SERVICE_URL,
-                                                                "parameters": [
-                                                                    {
-                                                                        "key": "actionName",
-                                                                        "value": "submitNameDialog",
-                                                                    }
-                                                                ],
-                                                            }
-                                                        },
-                                                    }
-                                                ]
-                                            }
-                                        },
-                                    ],
-                                }
-                            ]
-                        }
+        "action": {
+            "navigations": [
+                {
+                    "pushCard": {
+                        "sections": [
+                            {
+                                "header": "Enter your name",
+                                "widgets": [
+                                    {
+                                        "textInput": {
+                                            "label": "Name",
+                                            "type": "SINGLE_LINE",
+                                            "name": "contactName",
+                                        }
+                                    },
+                                    {
+                                        "buttonList": {
+                                            "buttons": [
+                                                {
+                                                    "text": "Submit",
+                                                    "onClick": {
+                                                        "action": {
+                                                            "function": SERVICE_URL,
+                                                            "parameters": [
+                                                                {
+                                                                    "key": "actionName",
+                                                                    "value": "submitNameDialog",
+                                                                }
+                                                            ],
+                                                        }
+                                                    },
+                                                }
+                                            ]
+                                        }
+                                    },
+                                ],
+                            }
+                        ]
                     }
-                ]
-            }
+                }
+            ]
         }
     }
 
@@ -120,6 +118,4 @@ def submit_notification(name: str) -> dict[str, Any]:
     whether the notification alone dismisses the modal; if not, add the
     Add-On close instruction here.
     """
-    return {
-        "renderActions": {"action": {"notification": {"text": f"Got it — name received: {name}"}}}
-    }
+    return {"action": {"notification": {"text": f"Got it — name received: {name}"}}}
