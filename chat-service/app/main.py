@@ -111,7 +111,7 @@ async def chat_event(request: Request) -> dict[str, Any]:
 
     if event_type == "CARD_CLICKED":
         # `message` here is the buttonClickedPayload (see _classify).
-        common = message.get("commonEventObject", {})
+        common = event.get("commonEventObject", {})
         action = common.get("parameters", {}).get("actionName", "")
         log.info("card_click_received", action=action)
         if action == "openInitialDialog":
@@ -120,7 +120,7 @@ async def chat_event(request: Request) -> dict[str, Any]:
             return resp
 
         if action == "submitNameDialog":
-            inputs = message.get("commonEventObject", {}).get("formInputs", {})
+            inputs = event.get("commonEventObject", {}).get("formInputs", {})
             name = inputs.get("contactName", {}).get("stringInputs", {}).get("value", [""])[0]
             log.info("dialog_submit_received", name=name)
             return dialog.submit_notification(name)
