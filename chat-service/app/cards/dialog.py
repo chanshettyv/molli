@@ -118,4 +118,9 @@ def submit_notification(name: str) -> dict[str, Any]:
     whether the notification alone dismisses the modal; if not, add the
     Add-On close instruction here.
     """
-    return {"action": {"notification": {"text": f"Got it — name received: {name}"}}}
+    return {
+        "action": {
+            "navigations": [{"endNavigation": {"action": "CLOSE_DIALOG"}}],
+            "notification": {"text": f"Got it — name received: {name}"},
+        }
+    }
