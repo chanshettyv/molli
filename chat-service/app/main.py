@@ -121,7 +121,7 @@ async def chat_event(request: Request) -> dict[str, Any]:
 
         if action == "submitNameDialog":
             inputs = event.get("commonEventObject", {}).get("formInputs", {})
-            name = inputs.get("contactName", {}).get("stringInputs", {}).get("value", [""])[0]
+            name = inputs.get("email", {}).get("stringInputs", {}).get("value", [""])[0]
             log.info("dialog_submit_received", name=name)
             return dialog.submit_notification(name)
 
