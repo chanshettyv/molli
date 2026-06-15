@@ -114,7 +114,9 @@ async def chat_event(request: Request) -> dict[str, Any]:
         )
 
         if function == "openInitialDialog":
-            return dialog.open_dialog()
+            resp = dialog.open_dialog()
+            log.info("outgoing_dialog_payload", payload=resp)
+            return resp
 
         if function == "submitNameDialog":
             inputs = message.get("commonEventObject", {}).get("formInputs", {})
