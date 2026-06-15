@@ -9,6 +9,8 @@ from __future__ import annotations
 
 from typing import Any
 
+SERVICE_URL = "https://molli-chat-service-719635778769.us-central1.run.app/"
+
 
 def trigger_card() -> dict[str, Any]:
     """Reply to 'dialogtest': a message card with a button that opens the dialog."""
@@ -31,8 +33,14 @@ def trigger_card() -> dict[str, Any]:
                                                                 "text": "Open dialog",
                                                                 "onClick": {
                                                                     "action": {
-                                                                        "function": "openInitialDialog",
+                                                                        "function": SERVICE_URL,
                                                                         "interaction": "OPEN_DIALOG",
+                                                                        "parameters": [
+                                                                            {
+                                                                                "key": "actionName",
+                                                                                "value": "openInitialDialog",
+                                                                            }
+                                                                        ],
                                                                     }
                                                                 },
                                                             }
@@ -78,7 +86,13 @@ def open_dialog() -> dict[str, Any]:
                                                         "text": "Submit",
                                                         "onClick": {
                                                             "action": {
-                                                                "function": "submitNameDialog"
+                                                                "function": SERVICE_URL,
+                                                                "parameters": [
+                                                                    {
+                                                                        "key": "actionName",
+                                                                        "value": "submitNameDialog",
+                                                                    }
+                                                                ],
                                                             }
                                                         },
                                                     }

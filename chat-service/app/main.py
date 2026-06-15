@@ -71,7 +71,9 @@ async def chat_event(request: Request) -> dict[str, Any]:
         # Slash command arrives with the command metadata on the message.
         user_text = message.get("text", "")
         if user_text == "dialogtest":
-            return dialog.trigger_card()
+            resp = dialog.trigger_card()
+            log.info("outgoing_trigger_payload", payload=resp)
+            return resp
         sender = message.get("sender", {})
         user_email = sender.get("email", "")
         user_name = sender.get("displayName", "")
@@ -109,22 +111,21 @@ async def chat_event(request: Request) -> dict[str, Any]:
 
     if event_type == "CARD_CLICKED":
         # `message` here is the buttonClickedPayload (see _classify).
-        function = (
-            message.get("button", {}).get("onClick", {}).get("action", {}).get("function", "")
-        )
-
-        if function == "openInitialDialog":
+        common = message.get("commonEventObject", {})
+        action = common.get("parameters", {}).get("actionName", "")
+        log.info("card_click_received", action=action)
+        if action == "openInitialDialog":
             resp = dialog.open_dialog()
             log.info("outgoing_dialog_payload", payload=resp)
             return resp
 
-        if function == "submitNameDialog":
+        if action == "submitNameDialog":
             inputs = message.get("commonEventObject", {}).get("formInputs", {})
             name = inputs.get("contactName", {}).get("stringInputs", {}).get("value", [""])[0]
             log.info("dialog_submit_received", name=name)
             return dialog.submit_notification(name)
 
-        log.info("unhandled_card_click", function=function)
+        log.info("unhandled_card_click", action=action)
         return {}
 
     return {}
