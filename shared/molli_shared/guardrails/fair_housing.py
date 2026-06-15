@@ -57,7 +57,7 @@ _EXCLUSION_PATTERNS: list[str] = [
 CANNED_RESPONSE = (
     "I'm not able to help with questions about tenant screening criteria "
     "or Fair Housing. These topics require HR or legal review. Please "
-    "contact Sally Sousa in HR directly for guidance."
+    "contact HR directly for guidance."
 )
 
 
