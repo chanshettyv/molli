@@ -39,9 +39,27 @@ _PII_PATTERNS: dict[str, str] = {
 
 # Patterns indicating a request about a third party's data (always BLOCK)
 _THIRD_PARTY_PATTERNS: list[str] = [
+    # Existing patterns
     r"\b(look up|find|show|pull|get|access|summarize).{0,40}\b(salary|ssn|social security|record|background|credit).{0,40}\bfor\b",
     r"\bapplicant.{0,30}(DOB|date of birth|\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4})\b",
     r"\bcan you (look up|find|tell me).{0,30}(john|jane|[A-Z][a-z]+)\b",
+
+    # Account number + resident/tenant name requests
+    r"\b(get to|access|find|pull up|look up|open).{0,40}\b(resident|tenant).{0,40}account\b",
+    r"\bresident.{0,20}account.{0,20}number\b",
+    r"\baccount (number|#|num).{0,30}\d{4,}\b",
+
+    # Any message referencing a specific named person + account/record/data
+    r"\b[A-Z][a-z]+\s[A-Z][a-z]+.{0,40}(account|record|ssn|salary|information|data|profile|number)\b",
+
+    # Asking about a named person's anything
+    r"\b(show|get|find|pull|access|open|look up).{0,30}[A-Z][a-z]+\s[A-Z][a-z]+\b",
+
+    # Resident/tenant + any identifier
+    r"\b(resident|tenant).{0,30}(account|number|record|ssn|dob|date of birth|profile)\b",
+
+    # Someone else's personal details
+    r"\b(his|her|their).{0,20}(account|ssn|salary|record|information|profile|number)\b",
 ]
 
 CANNED_RESPONSE_REDACT = """Just a heads up — I noticed your message contained what looks like sensitive personal information (like a Social Security Number or account number). I've removed it before processing your question to keep your data safe.
