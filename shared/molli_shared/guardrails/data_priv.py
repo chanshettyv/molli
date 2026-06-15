@@ -6,17 +6,25 @@ Mode B — Output scanning (post-Gemini): detect PII in Gemini responses.
 If entire message is PII → BLOCK.
 If PII present alongside a valid question → REDACT.
 Third-party PII requests (asking about someone else's data) → BLOCK.
+
+DLP wrapper is used for redaction — regex is a fast pre-filter only.
 """
 
 from __future__ import annotations
 
+import logging
 import re
 from typing import Any
 
+from molli_shared.config import get_settings
+
 from .base import Action, GuardrailVerdict
+from .dlp import DLPScanner
+
+log = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
-# PII detection patterns — keyed by type
+# PII detection patterns — keyed by type (fast pre-filter only)
 # ---------------------------------------------------------------------------
 
 _PII_PATTERNS: dict[str, str] = {
@@ -56,7 +64,23 @@ def detect_pii(text: str) -> dict[str, list[str]]:
 
 
 def redact_pii(text: str) -> tuple[str, dict[str, int]]:
-    """Return (redacted_text, {pii_type: count_redacted})."""
+    """Redact PII using Google Cloud DLP. Falls back to regex if DLP unavailable."""
+    try:
+        settings = get_settings()
+        scanner = DLPScanner(project_id=settings.gcp_project_id)
+        result = scanner.scan(text)
+        if result.scan_skipped:
+            log.warning("DLP unavailable — falling back to regex redaction")
+            return _regex_redact(text)
+        counts = {t: 1 for t in result.found_types}
+        return result.redacted_text, counts
+    except Exception as exc:
+        log.error("DLP redaction failed — falling back to regex. error=%s", exc)
+        return _regex_redact(text)
+
+
+def _regex_redact(text: str) -> tuple[str, dict[str, int]]:
+    """Fallback regex-based redaction when DLP is unavailable."""
     redacted = text
     counts: dict[str, int] = {}
     for pii_type, pattern in _PII_PATTERNS.items():
@@ -78,8 +102,6 @@ def _is_entirely_pii(text: str, pii_found: dict[str, Any]) -> bool:
     if not pii_found:
         return False
 
-    # Identity documents presented for verification are always BLOCK
-    # e.g. "Here's my driver's license number: D123-456-789"
     if "drivers_license" in pii_found or "passport" in pii_found:
         if re.search(
             r"\b(here'?s|here is|my).{0,30}(driver'?s license|passport|license number|DL number)\b",
@@ -88,7 +110,6 @@ def _is_entirely_pii(text: str, pii_found: dict[str, Any]) -> bool:
         ):
             return True
 
-    # SSN + update/change request = block (can't process identity updates via chat)
     if "SSN" in pii_found:
         if re.search(
             r"\b(update|change|fix|correct|edit|modify|add|save|can you).{0,40}(my|the)\b.{0,40}(record|file|info|information|account|details)\b",
@@ -96,19 +117,15 @@ def _is_entirely_pii(text: str, pii_found: dict[str, Any]) -> bool:
             re.IGNORECASE,
         ):
             return True
-        # SSN shared directly as the subject of the message (not embedded in a question)
-        ssn_match = re.search(
+        if re.search(
             r"\bmy ssn is\b|\bssn:\s*\d|\bsocial security number is\b",
             text,
             re.IGNORECASE,
-        )
-        if ssn_match:
+        ):
             return True
 
-    # Strip all PII and see if there's meaningful content left
-    redacted, _ = redact_pii(text)
+    redacted, _ = _regex_redact(text)
     remaining = re.sub(r"\[REDACTED:[A-Z_]+\]", "", redacted).strip()
-    # Less than 10 non-whitespace chars remaining → message was mostly PII
     return len(re.sub(r"\s+", "", remaining)) < 10
 
 
@@ -145,7 +162,7 @@ class DataPrivacyGuardrail:
                 canned_response=CANNED_RESPONSE_BLOCK,
             )
 
-        # PII alongside a real question → REDACT
+        # PII alongside a real question → REDACT via DLP
         return GuardrailVerdict(
             action=Action.REDACT,
             category="DATA_PRIVACY",
