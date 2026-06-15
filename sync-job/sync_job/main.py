@@ -31,7 +31,7 @@ import logging
 import time
 from datetime import UTC, datetime
 
-from molli_shared.clients.document360 import Document360Client
+from molli_shared.clients.document360 import Article, Document360Client
 from molli_shared.config import get_settings
 
 from sync_job.chunking import chunk_html
@@ -54,7 +54,7 @@ async def _gather_articles(
     watermark: datetime | None,
     limit: int | None = None,
     retry_ids: list[str] | None = None,
-):
+) -> tuple[list[Article], list[str]]:
     stubs = await client.list_articles(modified_since=watermark)
     log.info("found %d changed/indexable article(s)", len(stubs))
     if limit is not None:
@@ -93,12 +93,13 @@ async def _gather_articles(
             failed.append(aid)
             log.warning("skipping article %s after fetch failure: %s", aid, exc)
     if failed:
-        log.warning("%d article(s) failed to fetch and were skipped: %s",
-                    len(failed), ", ".join(failed))
+        log.warning(
+            "%d article(s) failed to fetch and were skipped: %s", len(failed), ", ".join(failed)
+        )
     return articles, failed
 
 
-def run_sync(skip_watermark: bool = False, limit: int | None = None) -> dict:
+def run_sync(skip_watermark: bool = False, limit: int | None = None) -> dict[str, int]:
     """Synchronous orchestrator. Returns a small summary dict for logging."""
     settings = get_settings()
     started_at = datetime.now(UTC)
@@ -120,7 +121,7 @@ def run_sync(skip_watermark: bool = False, limit: int | None = None) -> dict:
     # 2 + 3. List changed articles and fetch bodies
     client = Document360Client.from_settings()
 
-    async def _fetch():
+    async def _fetch() -> tuple[list[Article], list[str]]:
         async with client:
             return await _gather_articles(client, watermark, limit, retry_ids)
 
@@ -167,7 +168,7 @@ def run_sync(skip_watermark: bool = False, limit: int | None = None) -> dict:
                 category_id=article.category_id or "",
                 heading=c.heading,
             )
-            for c, v in zip(chunks, vectors)
+            for c, v in zip(chunks, vectors, strict=True)
         ]
         all_indexed.extend(indexed)
         total_chunks += len(indexed)
@@ -176,13 +177,12 @@ def run_sync(skip_watermark: bool = False, limit: int | None = None) -> dict:
     # 6b. Batch-upsert everything, pausing between batches to stay under the
     # Matching Engine stream-update per-minute quota.
     log.info("upserting %d chunk(s) in batches", len(all_indexed))
-    _BATCH = 100
-    for start in range(0, len(all_indexed), _BATCH):
-        batch = all_indexed[start : start + _BATCH]
+    batch_size = 100
+    for start in range(0, len(all_indexed), batch_size):
+        batch = all_indexed[start : start + batch_size]
         index.upsert(batch)
-        log.info("upserted %d / %d", min(start + _BATCH, len(all_indexed)),
-                 len(all_indexed))
-        if start + _BATCH < len(all_indexed):
+        log.info("upserted %d / %d", min(start + batch_size, len(all_indexed)), len(all_indexed))
+        if start + batch_size < len(all_indexed):
             time.sleep(6)  # ~100 datapoints / 6s keeps us well under quota
 
     # 7. Advance the watermark to the run start time, and persist the set of
@@ -193,8 +193,7 @@ def run_sync(skip_watermark: bool = False, limit: int | None = None) -> dict:
         store.write_failed(failed_fetches)
         log.info("watermark advanced to %s", started_at.isoformat())
         if failed_fetches:
-            log.info("%d failed article(s) queued for retry next run",
-                     len(failed_fetches))
+            log.info("%d failed article(s) queued for retry next run", len(failed_fetches))
 
     summary = {
         "articles": len(articles),

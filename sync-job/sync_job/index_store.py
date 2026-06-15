@@ -18,6 +18,7 @@ chat-service can read back from neighbor results for citation.
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import Any
 
 from google.cloud import aiplatform_v1
 
@@ -55,12 +56,9 @@ class VectorIndex:
     ) -> None:
         self._project = project_id
         self._region = region
-        self._index_name = (
-            f"projects/{project_id}/locations/{region}/indexes/{index_id}"
-        )
+        self._index_name = f"projects/{project_id}/locations/{region}/indexes/{index_id}"
         self._endpoint_name = (
-            f"projects/{project_id}/locations/{region}"
-            f"/indexEndpoints/{index_endpoint_id}"
+            f"projects/{project_id}/locations/{region}/indexEndpoints/{index_endpoint_id}"
         )
         self._deployed_index_id = deployed_index_id
 
@@ -98,9 +96,7 @@ class VectorIndex:
 
         Removes ids ``{article_id}::{n}`` for n >= keep_ordinals, up to a small
         look-ahead. Safe to call with ids that don't exist."""
-        stale = [
-            f"{article_id}::{n}" for n in range(keep_ordinals, keep_ordinals + 50)
-        ]
+        stale = [f"{article_id}::{n}" for n in range(keep_ordinals, keep_ordinals + 50)]
         self._index_client.remove_datapoints(
             request=aiplatform_v1.RemoveDatapointsRequest(
                 index=self._index_name,
@@ -122,19 +118,15 @@ class VectorIndex:
                 aiplatform_v1.IndexDatapoint.Restriction(
                     namespace="title", allow_list=[c.title[:300]]
                 ),
-                aiplatform_v1.IndexDatapoint.Restriction(
-                    namespace="url", allow_list=[c.url or ""]
-                ),
+                aiplatform_v1.IndexDatapoint.Restriction(namespace="url", allow_list=[c.url or ""]),
                 aiplatform_v1.IndexDatapoint.Restriction(
                     namespace="heading", allow_list=[c.heading[:300]]
                 ),
             ],
-            crowding_tag=aiplatform_v1.IndexDatapoint.CrowdingTag(
-                crowding_attribute=c.article_id
-            ),
+            crowding_tag=aiplatform_v1.IndexDatapoint.CrowdingTag(crowding_attribute=c.article_id),
         )
 
-    def query(self, vector: list[float], neighbor_count: int = 5) -> list[dict]:
+    def query(self, vector: list[float], neighbor_count: int = 5) -> list[dict[str, Any]]:
         """Nearest-neighbor search. Returns id/distance/metadata dicts."""
         request = aiplatform_v1.FindNeighborsRequest(
             index_endpoint=self._endpoint_name,
@@ -148,14 +140,13 @@ class VectorIndex:
             return_full_datapoint=True,
         )
         response = self._match_client.find_neighbors(request=request)
-        results: list[dict] = []
+        results: list[dict[str, Any]] = []
         if not response.nearest_neighbors:
             return results
         for neighbor in response.nearest_neighbors[0].neighbors:
             dp = neighbor.datapoint
             meta = {
-                r.namespace: list(r.allow_list)[0] if r.allow_list else ""
-                for r in dp.restricts
+                r.namespace: list(r.allow_list)[0] if r.allow_list else "" for r in dp.restricts
             }
             results.append(
                 {

@@ -53,7 +53,7 @@ async def test_guardrail_blocks_fha_topic():
     assert verdict.action == Action.BLOCK
     assert verdict.category == "FAIR_HOUSING"
     assert verdict.canned_response is not None
-    assert "Sally" in verdict.canned_response
+    assert "HR" in verdict.canned_response
 
 
 @pytest.mark.asyncio
@@ -68,7 +68,7 @@ async def test_guardrail_blocks_fcra_topic():
     assert verdict.action == Action.BLOCK
     assert verdict.category == "FCRA"
     assert verdict.canned_response is not None
-    assert "Sally" in verdict.canned_response
+    assert "Fair Credit" in verdict.canned_response
 
 
 @pytest.mark.asyncio

@@ -31,9 +31,9 @@ class WatermarkStore:
     def read(self) -> datetime | None:
         """Return the last successful sync time, or None for a first run."""
         snapshot = self._ref.get()
-        if not snapshot.exists:
+        if not snapshot.exists:  # type: ignore[union-attr]
             return None
-        value = snapshot.to_dict().get(_FIELD)
+        value = snapshot.to_dict().get(_FIELD)  # type: ignore[union-attr]
         if not value:
             return None
         try:
@@ -51,9 +51,9 @@ class WatermarkStore:
         """Return article IDs that failed to fetch on a previous run and should
         be retried this run regardless of the watermark. Empty list if none."""
         snapshot = self._ref.get()
-        if not snapshot.exists:
+        if not snapshot.exists:  # type: ignore[union-attr]
             return []
-        value = snapshot.to_dict().get(_FAILED_FIELD)
+        value = snapshot.to_dict().get(_FAILED_FIELD)  # type: ignore[union-attr]
         return list(value) if isinstance(value, list) else []
 
     def write_failed(self, article_ids: list[str]) -> None:

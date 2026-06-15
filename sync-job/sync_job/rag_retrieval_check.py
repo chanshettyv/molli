@@ -24,16 +24,20 @@ _PUBLIC_ENDPOINT_DOMAIN = "163164439.us-central1-719635778769.vdb.vertexai.goog"
 
 # (question, what a good hit looks like) — from the ticket audit top article needs
 QUESTIONS = [
-    ("How do I reset my Google password?",
-     "Google password reset / account recovery (IT, highest-impact)"),
-    ("How do I connect to the office printer?",
-     "Connecting to office printers (IT)"),
-    ("How do I request access in Entrata?",
-     "Entrata: requesting access (Ops)"),
-    ("How do I process a refund or reversal in Entrata?",
-     "Entrata: refunds, reversals, scheduled charges (Ops)"),
-    ("A resident cannot log into the resident portal, what do I do?",
-     "Resident portal troubleshooting (Ops)"),
+    (
+        "How do I reset my Google password?",
+        "Google password reset / account recovery (IT, highest-impact)",
+    ),
+    ("How do I connect to the office printer?", "Connecting to office printers (IT)"),
+    ("How do I request access in Entrata?", "Entrata: requesting access (Ops)"),
+    (
+        "How do I process a refund or reversal in Entrata?",
+        "Entrata: refunds, reversals, scheduled charges (Ops)",
+    ),
+    (
+        "A resident cannot log into the resident portal, what do I do?",
+        "Resident portal troubleshooting (Ops)",
+    ),
 ]
 
 NEIGHBORS = 5

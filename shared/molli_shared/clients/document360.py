@@ -97,6 +97,7 @@ class _RateLimiter:
             else:
                 self._tokens -= 1.0
 
+
 class Document360Error(RuntimeError):
     """Raised when the API returns a non-success envelope or HTTP error."""
 
@@ -343,6 +344,3 @@ def _parse_retry_after(value: str | None) -> float | None:
         return max(delta, 0.0)
     except (TypeError, ValueError):
         return None
-
-
-

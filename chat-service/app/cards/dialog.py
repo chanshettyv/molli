@@ -172,7 +172,7 @@ def open_dialog() -> dict[str, Any]:
         "Vintages at Clemson",
     ]
 
-    system_items = [
+    _system_names = [
         "Computer/Laptop",
         "Daily Number (DN) Spreadsheet",
         "Entrata",
@@ -251,7 +251,7 @@ def open_dialog() -> dict[str, Any]:
     ]
 
     location_items = [{"text": loc, "value": loc} for loc in locations]
-    system_items = [{"text": item, "value": item} for item in system_items]
+    system_items = [{"text": item, "value": item} for item in _system_names]
 
     return {
         "action": {
@@ -267,6 +267,7 @@ def open_dialog() -> dict[str, Any]:
                                             "label": "Email",
                                             "type": "SINGLE_LINE",
                                             "name": "email",
+                                            "value": "prefill-test@preiss.com",
                                         }
                                     },
                                     {

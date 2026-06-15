@@ -73,7 +73,7 @@ async def test_blocks_denial_letter():
 async def test_canned_response_is_set():
     verdict = await guardrail.check("what are the screening criteria?", USER)
     assert verdict.canned_response is not None
-    assert "Sally" in verdict.canned_response
+    assert "HR" in verdict.canned_response
 
 
 # ---------------------------------------------------------------------------

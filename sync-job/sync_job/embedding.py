@@ -41,9 +41,8 @@ class Embedder:
         vectors: list[list[float]] = []
         for start in range(0, len(texts), _MAX_BATCH):
             batch = texts[start : start + _MAX_BATCH]
-            inputs = [
-                TextEmbeddingInput(text=t, task_type=_TASK_TYPE, title=title)
-                for t in batch
+            inputs: list[str | TextEmbeddingInput] = [
+                TextEmbeddingInput(text=t, task_type=_TASK_TYPE, title=title) for t in batch
             ]
             results = self._model.get_embeddings(inputs)
             for r in results:
