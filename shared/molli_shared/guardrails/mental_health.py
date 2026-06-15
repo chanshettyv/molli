@@ -47,6 +47,17 @@ _IMPLICIT_PATTERNS: list[str] = [
     r"\bno one.*notice.*gone\b",
     r"\bstruggling with (anxiety|depression|my mental health)\b",
     r"\bnot (been )?okay for a long time\b",
+    r"\bi'?m not doing (ok|okay)\b",
+    r"\bnot doing (ok|okay)\b",
+    r"\bnot doing well\b",
+    r"\bnot doing great\b",
+    r"\bhate myself\b",
+    r"\bi hate myself\b",
+    r"\bfeeling (really )?(low|awful|terrible|horrible|worthless)\b",
+    r"\bdon'?t want to (be here|exist|come in|do this anymore)\b",
+    r"\bcan'?t (take|handle|deal with) (this|it) anymore\b",
+    r"\bwhat'?s the point\b",
+    r"\bno reason to (keep going|go on|try)\b",
 ]
 
 _CRISIS_TERMS: list[str] = [

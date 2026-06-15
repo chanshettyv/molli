@@ -33,6 +33,13 @@ _TIER1_PATTERNS: list[str] = [
     r"\b(accident|injury|collapse|emergency)\b.{0,30}\b(now|just|happening|occurred)\b",
     r"\bcall 911\b",
     r"\bevacuat(e|ing)\b",
+    r"\bcaught on fire\b",
+    r"\bon fire\b",
+    r"\bbuilding (is |was )?(on fire|burning)\b",
+    r"\bfire (at|on|in) (the |my )?(property|building|unit|office|complex)\b",
+    r"\bsmoke (everywhere|filling|coming from)\b",
+    r"\bsomething'?s (on fire|burning)\b",
+    r"\bfire broke out\b",
 ]
 
 # Tier 2 — general OSHA compliance / process questions
