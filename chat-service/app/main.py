@@ -7,32 +7,14 @@ Real logic lands in Phase 1 and 2.
 
 from __future__ import annotations
 
-import uuid  # NEW (ticket submit): conversation-id for the mock custom field
 from typing import Any
 
 import structlog
 from fastapi import FastAPI, Request
-from molli_shared.clients.mock_ticketing import MockTicketingProvider
-from molli_shared.clients.ticketing import TicketingError, TicketingProvider
 from molli_shared.config import get_settings
 from molli_shared.guardrails.chain import run_chain, scan_gemini_output
 
-# ---------------------------------------------------------------------------
-# NEW (ticket submit): schema + ticketing provider
-# ---------------------------------------------------------------------------
-# These back the submit_ticket handler. The provider is the seam for the
-# Autotask migration — swap MockTicketingProvider for a real FreshserviceProvider
-# (same TicketingProvider interface) and nothing else in this file changes.
-from molli_shared.schemas.ticket import (
-    DraftIncompleteError,
-    MolliCustomFields,
-    TicketCreatePayload,
-    TicketPriority,
-)
-
 from app.gemini_client import ask_gemini
-
-PROVIDER: TicketingProvider = MockTicketingProvider()
 
 # Department dropdown value -> Freshservice group_id.
 # DUMMY mapping for the mock. Replace with Adam's real group IDs when going live.
@@ -68,226 +50,6 @@ def _chat_reply(text: str) -> dict[str, Any]:
     }
 
 
-def _chat_dialog(
-    *,
-    summary: str = "",
-    description: str = "",
-    department: str = "IT",
-    priority: str = "2",
-) -> dict[str, Any]:
-    """Open a ticket-edit dialog in the new Chat event (hostAppDataAction) format.
-
-    Pass the values Gemini extracted from the `create_ticket` call to pre-fill
-    each widget. Every field stays editable; submitting fires the
-    `submit_ticket` action back to the POST / endpoint.
-    """
-
-    def _dropdown_items(
-        options: list[tuple[str, str]], selected_value: str
-    ) -> list[dict[str, object]]:
-        return [
-            {"text": text, "value": value, "selected": value == selected_value}
-            for text, value in options
-        ]
-
-    dialog_body = {
-        "sections": [
-            {
-                "header": "Review and edit your ticket",
-                "widgets": [
-                    {
-                        "textInput": {
-                            "name": "summary",
-                            "label": "Summary",
-                            "value": summary,
-                        }
-                    },
-                    {
-                        "textInput": {
-                            "name": "description",
-                            "label": "Details",
-                            "type": "MULTIPLE_LINE",
-                            "value": description,
-                        }
-                    },
-                    {
-                        "selectionInput": {
-                            "name": "department",
-                            "label": "Department",
-                            "type": "DROPDOWN",
-                            "items": _dropdown_items(
-                                [
-                                    ("IT", "IT"),
-                                    ("Operations", "Ops"),
-                                    ("Human Resources", "HR"),
-                                ],
-                                department,
-                            ),
-                        }
-                    },
-                    {
-                        "selectionInput": {
-                            "name": "priority",
-                            "label": "Priority",
-                            "type": "DROPDOWN",
-                            "items": _dropdown_items(
-                                [
-                                    ("Low", "1"),
-                                    ("Medium", "2"),
-                                    ("High", "3"),
-                                ],
-                                priority,
-                            ),
-                        }
-                    },
-                    {
-                        "buttonList": {
-                            "buttons": [
-                                {
-                                    "text": "Create ticket",
-                                    "onClick": {"action": {"function": "submit_ticket"}},
-                                }
-                            ]
-                        }
-                    },
-                ],
-            }
-        ]
-    }
-
-    # Dialogs use the flat actionResponse envelope (NOT hostAppDataAction —
-    # that family has no dialogAction field; confirmed against Google's
-    # contact-form-app sample).
-    return {
-        "actionResponse": {
-            "type": "DIALOG",
-            "dialogAction": {"dialog": {"body": dialog_body}},
-        }
-    }
-
-
-def _chat_dialog_close(*, ok: bool, message: str) -> dict[str, Any]:
-    """Close the dialog with a status banner after submit.
-
-    statusCode OK closes cleanly; INVALID_ARGUMENT keeps it open and shows the
-    error text. Matches the sample's submit_form success/error responses.
-    """
-    return {
-        "actionResponse": {
-            "type": "DIALOG",
-            "dialogAction": {
-                "actionStatus": {
-                    "statusCode": "OK" if ok else "INVALID_ARGUMENT",
-                    "userFacingMessage": message,
-                }
-            },
-        }
-    }
-
-
-def _chat_dialog_trigger_button(text: str = "Tap to open the ticket dialog") -> dict[str, Any]:
-    """Reply with a message + button that opens the dialog when clicked.
-
-    The button (a message accessory) stays on the message envelope
-    (hostAppDataAction); only the dialog *response* uses actionResponse.
-    """
-    return {
-        "hostAppDataAction": {
-            "chatDataAction": {
-                "createMessageAction": {
-                    "message": {
-                        "text": text,
-                        "accessoryWidgets": [
-                            {
-                                "buttonList": {
-                                    "buttons": [
-                                        {
-                                            "text": "Open ticket form",
-                                            "onClick": {
-                                                "action": {
-                                                    "function": "open_ticket_dialog",
-                                                    "interaction": "OPEN_DIALOG",
-                                                }
-                                            },
-                                        }
-                                    ]
-                                }
-                            }
-                        ],
-                    }
-                }
-            }
-        }
-    }
-
-
-# ---------------------------------------------------------------------------
-# NEW (ticket submit): read form inputs + build the strict payload
-# ---------------------------------------------------------------------------
-def _read_form(payload: dict[str, Any], name: str) -> str | None:
-    """Pull a single string value from the submit payload's form inputs.
-
-    !!! VERIFY THIS PATH AGAINST A REAL SUBMIT-CLICK LOG !!!
-    The new Chat event format may nest formInputs differently from the old
-    `common.formInputs` shape the public docs show. The submit branch below
-    logs the raw payload — click Create once in real Chat, read the log line,
-    and correct the lookup here if needed. Both common locations are tried.
-    All values arrive as STRING arrays, so we take value[0].
-    """
-    form_inputs = (
-        payload.get("formInputs")
-        or payload.get("commonEventObject", {}).get("formInputs", {})
-        or payload.get("common", {}).get("formInputs", {})
-    )
-    widget = form_inputs.get(name)
-    if not widget:
-        return None
-    values = widget.get("stringInputs", {}).get("value", [])
-    return values[0] if values else None
-
-
-def _build_ticket_payload(payload: dict[str, Any], user_email: str) -> TicketCreatePayload:
-    """Map the dialog's form fields onto a strict TicketCreatePayload.
-
-    Field name reconciliation (dialog -> schema):
-        summary     -> subject
-        department  -> group_id   (via _DEPT_TO_GROUP)
-        priority    -> priority   (string "3" parsed to int)
-    The schema-required custom_fields the dialog doesn't collect are backfilled
-    with DUMMY values for the mock. When going live, either add widgets for them
-    or resolve via the Workspace Admin SDK (computer name, location).
-    """
-    summary = _read_form(payload, "summary")
-    description = _read_form(payload, "description")
-    department = _read_form(payload, "department") or "IT"
-    priority_raw = _read_form(payload, "priority")
-
-    priority: TicketPriority = 2  # Medium default
-    if priority_raw and int(priority_raw) in (1, 2, 3, 4):
-        priority = int(priority_raw)  # type: ignore[assignment]
-
-    custom = MolliCustomFields(
-        original_system="Unknown (mock)",
-        original_more_detail="Created via Molli ticket dialog.",
-        msf_affected_location=["UNKNOWN"],
-        molli_conversation_id=str(uuid.uuid4()),
-        molli_confidence_score=1.0,
-        molli_escalation_reason="user-requested-human",
-    )
-
-    return TicketCreatePayload(
-        email=user_email or "unknown@preiss.com",  # type: ignore[arg-type]
-        subject=summary or "(no subject)",
-        description=description or "(no description)",
-        group_id=_DEPT_TO_GROUP.get(department, 1),
-        custom_fields=custom,
-        priority=priority,
-    )
-
-
-# ---------------------------------------------------------------------------
-
-
 log = structlog.get_logger()
 app = FastAPI(title="Molli chat-service", version="0.1.0")
 
@@ -303,57 +65,10 @@ async def chat_event(request: Request) -> dict[str, Any]:
     log.info("received_chat_event", payload=event)
     event_type, message = _classify(event)
     log.info("chat_event_received", event_type=event_type)
-    if event_type == "APP_COMMAND":
-        meta = event.get("chat", {}).get("appCommandPayload", {}).get("appCommandMetadata", {})
-        # Google sends appCommandId as a float (1.0); normalize to "1".
-        raw_id = meta.get("appCommandId", 0)
-        command_id = str(int(float(raw_id))) if raw_id else ""
-        log.info("app_command", command_id=command_id)
-        if command_id == "1":  # /newticket
-            return _chat_dialog(summary="test ticket", description="testing the dialog render")
-        return _chat_reply("Command not recognized.")
-
-    if event_type == "CARD_CLICKED":
-        payload = event.get("chat", {}).get("buttonClickedPayload", {})
-        log.info("button_click", body=payload)  # TEMP: confirm the invoked-function key
-        invoked = payload.get("invokedFunction") or payload.get("function")
-        if invoked == "open_ticket_dialog":
-            return _chat_dialog(summary="test ticket", description="testing the dialog render")
-
-        # vvv NEW (ticket submit): wire the submit handler vvv
-        if invoked == "submit_ticket":
-            # Email lives on the appCommandPayload/messagePayload message sender,
-            # OR fall back to the top-level chat.user. Confirmed present in logs.
-            user_email = event.get("chat", {}).get("user", {}).get("email", "") or payload.get(
-                "message", {}
-            ).get("sender", {}).get("email", "")
-            try:
-                ticket_payload = _build_ticket_payload(payload, user_email)
-            except (ValueError, DraftIncompleteError) as exc:
-                log.warning("ticket_build_failed", error=str(exc))
-                return _chat_dialog_close(ok=False, message=f"Couldn't create ticket: {exc}")
-            try:
-                created = await PROVIDER.create_ticket(ticket_payload)
-            except TicketingError as exc:
-                log.warning("ticket_create_failed", error=str(exc))
-                return _chat_dialog_close(
-                    ok=False, message="Something went wrong creating the ticket. Try again."
-                )
-            log.info("ticket_created", ticket_id=created.id)
-            return _chat_dialog_close(ok=True, message=f"Ticket #{created.id} created.")
-        # ^^^ NEW (ticket submit) ^^^
-
-        return {}
 
     if event_type == "MESSAGE":
         # Slash command arrives with the command metadata on the message.
-        slash = message.get("slashCommand") or message.get("appCommand") or {}
-        command_id = str(slash.get("commandId", ""))
-        if command_id == "1":  # the Command Id you set for /newticket
-            return _chat_dialog(summary="test ticket", description="testing the dialog render")
         user_text = message.get("text", "")
-        if user_text.strip().lower() == "/dialogtest":
-            return _chat_dialog_trigger_button()
         sender = message.get("sender", {})
         user_email = sender.get("email", "")
         user_name = sender.get("displayName", "")
