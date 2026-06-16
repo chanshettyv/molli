@@ -63,6 +63,7 @@ def get_settings() -> Settings:
         gemini_temperature=float(os.environ.get("GEMINI_TEMPERATURE", "0.4")),
         freshservice_dry_run=os.environ.get("FRESHSERVICE_DRY_RUN", "true").lower()
         != "false",
+        freshservice_api_key=os.environ["FRESHSERVICE_API_KEY"],
     )
 
 
