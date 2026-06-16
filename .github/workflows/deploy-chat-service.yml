@@ -57,3 +57,4 @@ jobs:
             --no-allow-unauthenticated \
             --service-account=${{ secrets.GCP_RUNTIME_SA }} \
             --set-env-vars=GCP_PROJECT_ID=${{ env.PROJECT_ID }},GCP_PROJECT_NUMBER=${{ env.PROJECT_NUMBER }},ENVIRONMENT=${{ env.ENVIRONMENT }}
+            --set-secrets=FRESHSERVICE_API_KEY=freshservice-api-key:latest
