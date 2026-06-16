@@ -9,6 +9,8 @@ from __future__ import annotations
 
 from typing import Any
 
+from app.cards import form_options
+
 SERVICE_URL = "https://molli-chat-service-719635778769.us-central1.run.app/"
 
 
@@ -30,7 +32,7 @@ def trigger_card() -> dict[str, Any]:
                                                     "buttonList": {
                                                         "buttons": [
                                                             {
-                                                                "text": "Open dialog",
+                                                                "text": "Create a Ticket",
                                                                 "onClick": {
                                                                     "action": {
                                                                         "function": SERVICE_URL,
@@ -63,195 +65,13 @@ def trigger_card() -> dict[str, Any]:
 def open_dialog() -> dict[str, Any]:
     """Response to the openInitialDialog click: push the IT issue intake dialog."""
 
-    locations = [
-        "1820 at Centennial",
-        "21 Pearl",
-        "24 Longview",
-        "2909 Oliver",
-        "61 Vandy",
-        "Auraria Lofts",
-        "Axis West Campus",
-        "Blue Hill",
-        "Cabana Beach Gainesville",
-        "Cabana Beach San Marcos",
-        "Campus Edge",
-        "Colonial Village",
-        "Corporate: Accounting",
-        "Corporate: Construction Mgmt",
-        "Corporate: Executive Team",
-        "Corporate: HR",
-        "Corporate: IT",
-        "Corporate: Management Specialists",
-        "Corporate: Marketing",
-        "Corporate: New Business",
-        "Corporate: Operations",
-        "Corporate: PM",
-        "Courtyard Lofts",
-        "Crossing Place",
-        "Eastern on 10th",
-        "Flats at Carrs Hill",
-        "Gamecock Village",
-        "Garnet Crossing",
-        "Gateway at Huntsville",
-        "Gorman Row",
-        "Greene Crossing",
-        "Greene Crossing - Commercial",
-        "High View",
-        "Hoffler Place",
-        "Hoffler Place - Commercial",
-        "Holleman Crossing",
-        "IRIS",
-        "Logan Square",
-        "Madera",
-        "Method Townhomes",
-        "Midtown Auburn",
-        "Midtown Auburn - Commercial",
-        "Mustang Village",
-        "Nova Knoxville",
-        "Nova Knoxville - Commercial",
-        "Orion on Orpington",
-        "Platos Lofts at Randall",
-        "Preiss Residential Living",
-        "Proximity at 10th",
-        "Quantum on West Call",
-        "Raleigh Condos",
-        "Redfield Villages",
-        "Red Wolf Crossing",
-        "River Club Apartments",
-        "Riverfront Village",
-        "Signature 1505",
-        "Signature 1909",
-        "Signature at Varsity",
-        "Signature Hartwell Village",
-        "Signature Music Row",
-        "Signature Music Row - Commercial",
-        "Signature on Grand",
-        "Social Block",
-        "Tenzing Portfolio",
-        "The Avenue at Norman",
-        "The Boundary at West End",
-        "The Bridges Dinkytown",
-        "The Collective at Auburn",
-        "The Collective at Clemson",
-        "The Collective at Kennesaw",
-        "The Collective at Lawrence",
-        "The Collective at Lubbock",
-        "The Collective at Norman",
-        "The Edition on Oberlin",
-        "The Edition on Rosemary",
-        "The Forum at Sam Houston",
-        "The Gathering at UC",
-        "The Greens at Tryon",
-        "The Knoll Dinkytown",
-        "The Lookout",
-        "The Mill",
-        "The Nest at 4955",
-        "The Nest at University Center",
-        "The One Clemson",
-        "The Outpost",
-        "The Park on Morton",
-        "The Park on Morton - Commercial",
-        "The Province Greensboro",
-        "The Row (Columbia, MO)",
-        "The Row at the Stadium",
-        "The Townhomes at River Club",
-        "The Union",
-        "The Vine at Bermuda Run",
-        "The Warehouse",
-        "The Wynwood",
-        "University Trails",
-        "University Village at Clemson (UV)",
-        "University Woods",
-        "Valentine Commons",
-        "Valentine Commons - Commercial",
-        "Venue on Guadalupe",
-        "Venue on Guadalupe - Commercial",
-        "View at Legacy Oaks",
-        "Villas on Guadalupe",
-        "Villas on Guadalupe - Commercial",
-        "Vintages at Clemson",
+    location_items = [{"text": loc, "value": loc} for loc in form_options.LOCATIONS]
+    system_items = [{"text": item, "value": item} for item in form_options.SYSTEM_ITEMS]
+    group_items = [{"text": g["name"], "value": str(g["id"])} for g in form_options.GROUPS]
+    status_items = [{"text": s["name"], "value": str(s["value"])} for s in form_options.STATUSES]
+    priority_items = [
+        {"text": p["name"], "value": str(p["value"])} for p in form_options.PRIORITIES
     ]
-
-    _system_names = [
-        "Computer/Laptop",
-        "Daily Number (DN) Spreadsheet",
-        "Entrata",
-        "Google Apps (Gmail/email / Drive / Calendar / Docs)",
-        "IRIS Technologies: Project Request",
-        "Realpage - Knock",
-        "Realpage - On-Site Online Leasing",
-        "Realpage - Onesite, Financial Suite, Unified",
-        "Preiss IQ / Domo",
-        "Printer/Copier",
-        "Turn - Workbook, Spreadsheets, Jotforms, Documents, etc",
-        "Windows",
-        "Adobe Products",
-        "Amazon Business Account",
-        "Amber",
-        "Amex/Reconciliation (American Express)",
-        "Appfolio",
-        "Atmosphere TV",
-        "Bloomberg",
-        "Bonus Portal",
-        "Canva",
-        "CollegeHouse",
-        "Community Rewards",
-        "Corporate Server (TPCO CITRIX + Remanage)",
-        "Courtesy Connection",
-        "Email Distribution Lists",
-        "Flex",
-        "Document or Tutorial Request",
-        "Entrata - Utilities (Edition on Oberlin)",
-        "Epitiro",
-        "EZ Turn",
-        "GeoKey (Smart Locks)",
-        "Google Chrome",
-        "Google Sheets/Excel - RO, Electric, Bonus Form, Budget, Master Dashboard, etc.",
-        "Grace Hill PerformanceHQ",
-        "Grata (Smart Locks)",
-        "HelloSign/DocuSign/Adobe Sign",
-        "Homebase (Smart Locks)",
-        "Hyly - Email Blasts & Drip Campaigns",
-        "ILS - Apartments.com, Rent.com, etc",
-        "Insurance - DPPSCIC / Stern / ePremium",
-        "Leap",
-        "Loaner Request/Checkout (laptops, hotspots, etc)",
-        "Lock Systems",
-        "Maintenance Supply Companies (HD, Lowes, Ferguson, Chadwell)",
-        "MailChimp/iContact",
-        "Microsoft Office",
-        "Mood Media - Music",
-        "National Credit Systems (NCS) - Collections",
-        "Nationwide Eviction",
-        "Network/Internet",
-        "Notifii Packages",
-        "Staples (Office Supplies)",
-        "Package Lockers - Luxer One, Parcel Pending, Amazon Hub",
-        "Paylease/Zego",
-        "PayReady Collections",
-        "Phone",
-        "Property Website",
-        "QR Codes",
-        "Quickbooks",
-        "Quote Request - Hardware/Devices or Software",
-        "RentPlus/Homebody Rent Reporting",
-        "Reviews/Reputation/Surveys - Opiniion, J Turner, Yelp, Google Business",
-        "SmartRent (Smart Locks)",
-        "Social Media - Facebook, Instagram, Google Business",
-        "Stratis (Smart Locks)",
-        "Student.com",
-        "Tawk.to",
-        "Tour24",
-        "Travtus",
-        "UHomes",
-        "Update Office Hours",
-        "Utilities - SimpleBills, Conservice, AUM",
-        "Yet Another Mail Merge (YAMM)",
-        "Zoom Conferencing",
-    ]
-
-    location_items = [{"text": loc, "value": loc} for loc in locations]
-    system_items = [{"text": item, "value": item} for item in _system_names]
 
     return {
         "action": {
@@ -264,16 +84,31 @@ def open_dialog() -> dict[str, Any]:
                                 "widgets": [
                                     {
                                         "textInput": {
-                                            "label": "Email",
+                                            "label": "Email *",
                                             "type": "SINGLE_LINE",
                                             "name": "email",
                                             "value": "prefill-test@preiss.com",
                                         }
                                     },
                                     {
+                                        "textInput": {
+                                            "label": "Subject *",
+                                            "type": "SINGLE_LINE",
+                                            "name": "subject",
+                                        }
+                                    },
+                                    {
+                                        "selectionInput": {
+                                            "name": "group",
+                                            "label": "Group *",
+                                            "type": "DROPDOWN",
+                                            "items": group_items,
+                                        }
+                                    },
+                                    {
                                         "selectionInput": {
                                             "name": "affectedLocation",
-                                            "label": "Affected Location",
+                                            "label": "Most Affected Location *",
                                             "type": "MULTI_SELECT",
                                             "items": location_items,
                                         }
@@ -281,23 +116,9 @@ def open_dialog() -> dict[str, Any]:
                                     {
                                         "selectionInput": {
                                             "name": "systemItem",
-                                            "label": "System Item",
+                                            "label": "System *",
                                             "type": "DROPDOWN",
                                             "items": system_items,
-                                        }
-                                    },
-                                    {
-                                        "textInput": {
-                                            "label": "Summarize Issue",
-                                            "type": "MULTIPLE_LINE",
-                                            "name": "summary",
-                                        }
-                                    },
-                                    {
-                                        "textInput": {
-                                            "label": "Details",
-                                            "type": "MULTIPLE_LINE",
-                                            "name": "details",
                                         }
                                     },
                                     {
@@ -305,6 +126,50 @@ def open_dialog() -> dict[str, Any]:
                                             "label": "Computer Name",
                                             "type": "SINGLE_LINE",
                                             "name": "computerName",
+                                        }
+                                    },
+                                    # NOTE: `columns` is first-time-use in this dialog and
+                                    # unconfirmed in the Add-On envelope. If the dialog throws
+                                    # a parse error on open, this is suspect #1 — fall back to
+                                    # two stacked RADIO_BUTTON selectionInputs.
+                                    {
+                                        "columns": {
+                                            "columnItems": [
+                                                {
+                                                    "horizontalSizeStyle": "FILL_AVAILABLE_SPACE",
+                                                    "widgets": [
+                                                        {
+                                                            "selectionInput": {
+                                                                "name": "status",
+                                                                "label": "Status *",
+                                                                "type": "RADIO_BUTTON",
+                                                                "items": status_items,
+                                                            }
+                                                        }
+                                                    ],
+                                                },
+                                                {
+                                                    "horizontalSizeStyle": "FILL_AVAILABLE_SPACE",
+                                                    "widgets": [
+                                                        {
+                                                            "selectionInput": {
+                                                                "name": "priority",
+                                                                "label": "Priority *",
+                                                                "type": "RADIO_BUTTON",
+                                                                "items": priority_items,
+                                                            }
+                                                        }
+                                                    ],
+                                                },
+                                            ]
+                                        }
+                                    },
+                                    {"divider": {}},
+                                    {
+                                        "textInput": {
+                                            "label": "Description *",
+                                            "type": "MULTIPLE_LINE",
+                                            "name": "description",
                                         }
                                     },
                                     {
@@ -320,6 +185,18 @@ def open_dialog() -> dict[str, Any]:
                                                                     "key": "actionName",
                                                                     "value": "submitNameDialog",
                                                                 }
+                                                            ],
+                                                            # Required fields — host blocks
+                                                            # submit until these have values.
+                                                            "requiredWidgets": [
+                                                                "email",
+                                                                "subject",
+                                                                "group",
+                                                                "affectedLocation",
+                                                                "systemItem",
+                                                                "status",
+                                                                "priority",
+                                                                "description",
                                                             ],
                                                         }
                                                     },

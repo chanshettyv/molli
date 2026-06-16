@@ -12,8 +12,6 @@ body:
 
     \  \"group_id\": 5000337271,\r
 
-    \  \"description\": \"<p>This is a test ticket created during the Molli Freshservice API spike. It will be deleted immediately after creation.</p>\",\r
-
     \  \"status\": 2,\r
 
     \  \"priority\": 1,\r
@@ -34,7 +32,9 @@ body:
 
     \            ]\r
 
-    \  }\r
+    \  },\r
+
+    \  \"description\": \"<p>This is a test ticket created during the Molli Freshservice API spike. It will be deleted immediately after creation.</p>\"\r
 
     }"
 order: 3518568076250753
