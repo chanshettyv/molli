@@ -7,20 +7,24 @@ Real logic lands in Phase 1 and 2.
 
 from __future__ import annotations
 
+from contextlib import asynccontextmanager
 from typing import Any
 
 import structlog
 from fastapi import FastAPI, Request
+from molli_shared.clients.freshservice import FreshserviceClient
+from molli_shared.clients.ticketing import (
+    TicketingAuthError,
+    TicketingError,
+    TicketingRateLimitError,
+    TicketingValidationError,
+)
 from molli_shared.config import get_settings
 from molli_shared.guardrails.chain import run_chain, scan_gemini_output
 
 from app.cards import dialog
+from app.cards.ticket_mapper import build_ticket_payload
 from app.gemini_client import ask_gemini
-
-# Department dropdown value -> Freshservice group_id.
-# DUMMY mapping for the mock. Replace with Adam's real group IDs when going live.
-_DEPT_TO_GROUP = {"IT": 1, "Ops": 2, "HR": 3}
-# ---------------------------------------------------------------------------
 
 
 def _classify(event: dict[str, Any]) -> tuple[str, dict[str, Any]]:
@@ -51,8 +55,57 @@ def _chat_reply(text: str) -> dict[str, Any]:
     }
 
 
+def _extract_form_inputs(event: dict[str, Any]) -> dict[str, Any]:
+    """Pull dialog form values out of a SUBMIT_DIALOG event.
+
+    Form inputs live at commonEventObject.formInputs, keyed by widget name,
+    each as {"stringInputs": {"value": [...]}}. Single-value widgets return a
+    one-element list; the multi-select returns all selected values. Empty
+    fields come back as [''] (a list with one empty string), not [].
+    """
+    form_inputs = event.get("commonEventObject", {}).get("formInputs", {})
+
+    def single(name: str) -> str:
+        """First value for a single-value widget; '' if absent."""
+        return form_inputs.get(name, {}).get("stringInputs", {}).get("value", [""])[0]
+
+    def multi(name: str) -> list[str]:
+        """All values for a multi-select; drops empty strings."""
+        values = form_inputs.get(name, {}).get("stringInputs", {}).get("value", [])
+        return [v for v in values if v]
+
+    return {
+        "email": single("email"),
+        "subject": single("subject"),
+        "group": single("group"),
+        "affectedLocation": multi("affectedLocation"),
+        "systemItem": single("systemItem"),
+        "status": single("status"),
+        "priority": single("priority"),
+        "description": single("description"),
+    }
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Construct the Freshservice client once per container at startup and
+    close it (and its httpx connection pool) at shutdown. Cloud Run may run
+    several container instances under load; each gets its own client, which
+    is correct — each manages its own connection pool.
+    """
+    settings = get_settings()
+    app.state.ticketing = FreshserviceClient(
+        base_url=settings.freshservice_base_url,
+        api_key=settings.freshservice_api_key,
+    )
+    log.info("ticketing_client_initialized", base_url=settings.freshservice_base_url)
+    yield
+    await app.state.ticketing.aclose()
+    log.info("ticketing_client_closed")
+
+
 log = structlog.get_logger()
-app = FastAPI(title="Molli chat-service", version="0.1.0")
+app = FastAPI(title="Molli chat-service", version="0.1.0", lifespan=lifespan)
 
 
 @app.get("/health")
@@ -120,10 +173,44 @@ async def chat_event(request: Request) -> dict[str, Any]:
             return resp
 
         if action == "submitNameDialog":
-            inputs = event.get("commonEventObject", {}).get("formInputs", {})
-            name = inputs.get("email", {}).get("stringInputs", {}).get("value", [""])[0]
-            log.info("dialog_submit_received", name=name)
-            return dialog.submit_notification(name)
+            inputs = _extract_form_inputs(event)
+            log.info("dialog_submit_received", inputs=inputs)
+
+            # Build + validate the payload. Strict schema raises on bad data.
+            try:
+                payload = build_ticket_payload(inputs)
+            except Exception as exc:
+                log.warning("ticket_payload_build_failed", error=str(exc))
+                return dialog.submit_notification(
+                    "Something was wrong with the ticket details. Please check your entries and try again."
+                )
+
+            settings = get_settings()
+            if settings.freshservice_dry_run:
+                # DRY RUN: log exactly what would be sent, create nothing.
+                log.info(
+                    "ticket_dry_run",
+                    payload=payload.model_dump(exclude_none=True),
+                )
+                return dialog.submit_notification(
+                    "Dry run: ticket payload built and validated (not sent)."
+                )
+
+            # LIVE: create the ticket.
+            try:
+                created = await request.app.state.ticketing.create_ticket(payload)
+                log.info("ticket_created", ticket_id=created.id)
+                return dialog.submit_notification(f"Ticket #{created.id} created.")
+            except TicketingValidationError as exc:
+                log.warning("ticket_validation_error", error=str(exc))
+                return dialog.submit_notification(
+                    "The ticketing system rejected the ticket. Please check your entries."
+                )
+            except (TicketingAuthError, TicketingRateLimitError, TicketingError) as exc:
+                log.error("ticket_create_failed", error=str(exc))
+                return dialog.submit_notification(
+                    "Couldn't reach the ticketing system right now. Please try again shortly."
+                )
 
         log.info("unhandled_card_click", action=action)
         return {}

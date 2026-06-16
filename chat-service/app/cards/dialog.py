@@ -84,7 +84,7 @@ def open_dialog() -> dict[str, Any]:
                                 "widgets": [
                                     {
                                         "textInput": {
-                                            "label": "Email *",
+                                            "label": "Email",
                                             "type": "SINGLE_LINE",
                                             "name": "email",
                                             "value": "prefill-test@preiss.com",
@@ -92,7 +92,7 @@ def open_dialog() -> dict[str, Any]:
                                     },
                                     {
                                         "textInput": {
-                                            "label": "Subject *",
+                                            "label": "Subject",
                                             "type": "SINGLE_LINE",
                                             "name": "subject",
                                         }
@@ -100,7 +100,7 @@ def open_dialog() -> dict[str, Any]:
                                     {
                                         "selectionInput": {
                                             "name": "group",
-                                            "label": "Group *",
+                                            "label": "Group",
                                             "type": "DROPDOWN",
                                             "items": group_items,
                                         }
@@ -108,7 +108,7 @@ def open_dialog() -> dict[str, Any]:
                                     {
                                         "selectionInput": {
                                             "name": "affectedLocation",
-                                            "label": "Most Affected Location *",
+                                            "label": "Most Affected Location",
                                             "type": "MULTI_SELECT",
                                             "items": location_items,
                                         }
@@ -116,7 +116,7 @@ def open_dialog() -> dict[str, Any]:
                                     {
                                         "selectionInput": {
                                             "name": "systemItem",
-                                            "label": "System *",
+                                            "label": "System",
                                             "type": "DROPDOWN",
                                             "items": system_items,
                                         }
@@ -167,7 +167,7 @@ def open_dialog() -> dict[str, Any]:
                                     {"divider": {}},
                                     {
                                         "textInput": {
-                                            "label": "Description *",
+                                            "label": "Description",
                                             "type": "MULTIPLE_LINE",
                                             "name": "description",
                                         }

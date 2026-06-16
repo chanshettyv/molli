@@ -55,12 +55,14 @@ def get_settings() -> Settings:
         gcp_region=os.environ.get("GCP_REGION", "us-central1"),
         environment=os.environ.get("ENVIRONMENT", "dev"),
         vector_index_id=os.environ.get("VECTOR_INDEX_ID"),
-        freshservice_domain=os.environ.get("FRESHSERVICE_DOMAIN", "tpco-org"),
+        freshservice_domain=os.environ.get("FRESHSERVICE_DOMAIN", "tpco"),
         vector_index_endpoint=os.environ.get("VECTOR_INDEX_ENDPOINT"),
         chat_service_url=os.environ.get("CHAT_SERVICE_URL"),
         use_gemini=os.environ.get("MOLLI_USE_GEMINI", "true").lower() != "false",
         gemini_model=os.environ.get("GEMINI_MODEL", "gemini-2.5-flash"),
         gemini_temperature=float(os.environ.get("GEMINI_TEMPERATURE", "0.4")),
+        freshservice_dry_run=os.environ.get("FRESHSERVICE_DRY_RUN", "true").lower()
+        != "false",
     )
 
 
