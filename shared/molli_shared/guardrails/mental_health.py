@@ -67,6 +67,9 @@ _CRISIS_TERMS: list[str] = [
     r"\bsuicide\b",
     r"\bsuicidal\b",
     r"\bkill myself\b",
+    r"\bhurt myself\b",
+    r"\bwant to hurt (myself|someone)\b",
+    r"\bthinking about (hurting|harming)\b",
 ]
 
 # Figurative / benign patterns that must NOT trigger (exclusion list)
