@@ -33,6 +33,10 @@ class Settings(BaseModel):
     use_gemini: bool = True
     gemini_model: str = "gemini-2.5-flash"
     gemini_temperature: float = 0.4
+    freshservice_api_key: str  # required — the actual key, from Secret Manager
+    freshservice_dry_run: bool = (
+        True  # safe default; flip to False to create real tickets
+    )
 
     @property
     def freshservice_base_url(self) -> str:
