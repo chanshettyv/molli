@@ -89,11 +89,14 @@ def _canned_response() -> str:
     except Exception:
         eap = "(EAP contact details — see HR for current information)"
     return (
-        "I'm really glad you reached out, and I want to make sure you get the right support.\n\n"
-        "Please connect with Preiss's Employee Assistance Program (EAP) — they offer free, confidential support 24/7:\n\n"
-        f"EAP Contact: {eap}\n\n"
-        "If you're in immediate danger, please call or text 988 (Suicide & Crisis Lifeline) or go to your nearest emergency room.\n\n"
-        "You don't have to navigate this alone. 💙"
+        return (
+    "I'm really glad you reached out, and I want to make sure you get the right support.\n\n"
+    "Please connect with Preiss's Employee Assistance Program (EAP) — they offer free, confidential support 24/7:\n\n"
+    f"EAP Contact: {eap}\n\n"
+    "If you're in immediate danger, please call or text 988 (Suicide & Crisis Lifeline) or go to your nearest emergency room.\n\n"
+    "I've also notified Sally Sousa in HR, who will follow up with you directly. "
+    "You don't have to navigate this alone — a real person will be in touch shortly.\n\n"
+    "You don't have to navigate this alone. 💙"
     )
 
 

@@ -40,6 +40,16 @@ _TIER1_PATTERNS: list[str] = [
     r"\bsmoke (everywhere|filling|coming from)\b",
     r"\bsomething'?s (on fire|burning)\b",
     r"\bfire broke out\b",
+    r"\bbreak[- ]?in\b",
+    r"\bsomeone broke in\b",
+    r"\bintruder\b",
+    r"\bunauthorized (person|individual|entry|access).{0,30}(property|building|office|unit)\b",
+    r"\btrespassing\b",
+    r"\btrespasser\b",
+    r"\bsomeone (is |was )?trespassing\b",
+    r"\bforced (entry|their way in)\b",
+    r"\bbroken into\b",
+    r"\bsomeone in the (building|property|office) who (shouldn't|doesn't) belong\b",
 ]
 
 # Tier 2 — general OSHA compliance / process questions

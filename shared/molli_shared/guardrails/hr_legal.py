@@ -67,6 +67,9 @@ _HOSTILE_WORKPLACE_PATTERNS: list[str] = [
     r"\bverbally (abused|attacked|threatened) (at work|by my manager|by a coworker)\b",
     r"\bphysically (threatened|intimidated) at work\b",
     r"\bworkplace (violence|threat|intimidation)\b",
+    r"\bmanager has been (yelling|screaming|threatening|abusive)\b",
+    r"\b(yelling|screaming|threatening).{0,30}in front of\b",
+    r"\bverbally (abusing|threatening) (me|staff|employees)\b",
 ]
 
 _INVESTIGATION_PATTERNS: list[str] = [

@@ -69,6 +69,8 @@ _FIRST_PERSON_SAFE_PATTERNS: list[str] = [
     r"\bi need help with my\b",
     r"\bmy direct deposit\b",
     r"\bmy account number\b",
+    r"\b(harassment|discrimination|retaliation) (policy|training|module|course)\b",
+    r"\bwhere can i find.{0,40}policy\b",
 ]
 
 def _is_first_person_safe(text: str) -> bool:

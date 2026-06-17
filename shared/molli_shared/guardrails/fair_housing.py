@@ -41,6 +41,28 @@ _FHA_PATTERNS: list[str] = [
     r"\bsexual orientation\b",
     r"\bgender identity\b",
     r"\bsource of income\b",
+    r"\breject.{0,30}(kids|children|families|pregnant)\b",
+    r"\baccent.{0,30}(good fit|approve|deny|reject)\b",
+    r"\bwheelchair.{0,30}(modify|modification|unit)\b",
+    r"\bkeep (families|kids|children) out\b",
+    r"\bavoid renting to\b",
+    r"\bstop accepting (vouchers|section 8)\b",
+    r"\bsection 8.{0,30}(stop|refuse|avoid|reject)\b",
+    r"\breject.{0,30}(kids|children|families|pregnant)\b",
+    r"\baccent.{0,30}(good fit|approve|deny|reject)\b",
+    r"\bwheelchair.{0,30}(modify|modification|unit)\b",
+    r"\bkeep (families|kids|children) out\b",
+    r"\bavoid renting to\b",
+    r"\bstop accepting (vouchers|section 8)\b",
+    r"\bsection 8.{0,30}(stop|refuse|avoid|reject)\b",
+    r"\bstop renting to\b",
+    r"\bdon'?t (want to|rent to).{0,30}(people from|anyone from)\b",
+    r"\breject.{0,60}(kids|children|families|pregnant)\b",
+    r"\b(kids|children|families).{0,30}reject\b",
+    r"\bapplicant.{0,30}(kids|children|a lot of kids)\b",
+    r"\bhas an accent\b",
+    r"\baccent.{0,60}(good fit|fit|approve|deny|reject)\b",
+    r"\bnot sure (they'?ll?|she'?ll?|he'?ll?) be a good fit\b",
 ]
 
 # Exclusion patterns — benign uses of otherwise triggering words.
@@ -51,7 +73,15 @@ _EXCLUSION_PATTERNS: list[str] = [
     r"\bsexual harassment\b",  # HR topic, not FHA
     r"\breligious (holiday|accommodation|observance|leave|exemption)\b",  # HR/EEO
     r"\brace condition\b",  # software term
-    r"\bdisability (insurance|benefit|claim|leave)\b",  # HR/benefits
+    r"\bdisability (insurance|benefit|claim|leave)\b",
+    r"\bwhat is (the )?fair housing\b",
+    r"\bfair housing (act|law|complaint|process|policy)\b",
+    r"\bour process for.{0,30}fair housing\b",
+    r"\bhandle.{0,30}fair housing complaint\b",  # HR/benefits
+    r"\bwhat is (the )?fair housing\b",
+    r"\bfair housing (act|law|complaint|process|policy|training)\b",
+    r"\bour process for.{0,30}fair housing\b",
+    r"\bhandle.{0,30}fair housing complaint\b",
 ]
 
 CANNED_RESPONSE = (

@@ -28,6 +28,7 @@ from .fcra import FCRAGuardrail
 from .llm_classifier import FHAFCRAClassifier
 from .mental_health import MentalHealthGuardrail
 from .osha import OSHAGuardrail
+from .hr_legal import HRLegalGuardrail
 
 logger = logging.getLogger(__name__)
 
@@ -79,6 +80,7 @@ _GUARDRAIL_CHAIN: list[Guardrail] = [
     FairHousingGuardrail(),  # FHA regex — fast path
     FCRAGuardrail(),  # FCRA regex — fast path
     FHAFCRAClassifier(),  # LLM semantic fallback (only reached if both regex pass)
+    HRLegalGuardrail(),  # HR/Legal risk signals
     DataPrivacyGuardrail(),  # Data Privacy (BLOCK); REDACT handled after
     EscalationGuardrail(),  # Escalation last
 ]
