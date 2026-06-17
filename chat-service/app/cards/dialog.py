@@ -214,7 +214,7 @@ def open_dialog() -> dict[str, Any]:
     }
 
 
-def submit_notification(name: str) -> dict[str, Any]:
+def submit_notification(ticket: str) -> dict[str, Any]:
     """Response to submitNameDialog: confirm via notification.
 
     The notification is the confirmed-correct Add-On submit response
@@ -227,6 +227,6 @@ def submit_notification(name: str) -> dict[str, Any]:
     return {
         "action": {
             "navigations": [{"endNavigation": {"action": "CLOSE_DIALOG"}}],
-            "notification": {"text": f"Got it — name received: {name}"},
+            "notification": {"text": f"Got it — ticket created: {ticket}"},
         }
     }

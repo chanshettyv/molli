@@ -200,7 +200,7 @@ async def chat_event(request: Request) -> dict[str, Any]:
             try:
                 created = await request.app.state.ticketing.create_ticket(payload)
                 log.info("ticket_created", ticket_id=created.id)
-                return dialog.submit_notification(f"Ticket #{created.id} created.")
+                return dialog.submit_notification(f"#{created.id}.")
             except TicketingValidationError as exc:
                 log.warning("ticket_validation_error", error=str(exc))
                 return dialog.submit_notification(

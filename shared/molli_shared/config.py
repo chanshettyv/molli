@@ -35,7 +35,7 @@ class Settings(BaseModel):
     gemini_temperature: float = 0.4
     freshservice_api_key: str  # required — the actual key, from Secret Manager
     freshservice_dry_run: bool = (
-        True  # safe default; flip to False to create real tickets
+        False  # safe default; flip to False to create real tickets
     )
 
     @property
@@ -65,8 +65,7 @@ def get_settings() -> Settings:
         use_gemini=os.environ.get("MOLLI_USE_GEMINI", "true").lower() != "false",
         gemini_model=os.environ.get("GEMINI_MODEL", "gemini-2.5-flash"),
         gemini_temperature=float(os.environ.get("GEMINI_TEMPERATURE", "0.4")),
-        freshservice_dry_run=os.environ.get("FRESHSERVICE_DRY_RUN", "true").lower()
-        != "false",
+        freshservice_dry_run=os.environ.get("FRESHSERVICE_DRY_RUN", "false"),
         freshservice_api_key=os.environ["FRESHSERVICE_API_KEY"],
     )
 
