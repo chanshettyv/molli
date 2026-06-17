@@ -30,10 +30,11 @@ log = logging.getLogger(__name__)
 _PII_PATTERNS: dict[str, str] = {
     "SSN": r"\b\d{3}[-\s]?\d{2}[-\s]?\d{4}\b",
     "credit_card": r"\b(?:4[0-9]{12}(?:[0-9]{3})?|5[1-5][0-9]{14}|3[47][0-9]{13}|3(?:0[0-5]|[68][0-9])[0-9]{11}|6(?:011|5[0-9]{2})[0-9]{12})\b",
-    "bank_account": r"(?:account|acct|routing|bank|direct\s+deposit)\s*(?:number|#|num|no\.?)?\s*:?\s*(\d{8,17})|\b(\d{8,17})\b(?=.{0,50}(?:account|acct|routing|bank|deposit))",
+    "bank_account": r"(?:account|acct|routing|bank|direct\s+deposit)\s*(?:number|#|num|no\.?)?\s*(?:is\s*)?\s*:?\s*\d{8,17}",
     "drivers_license": r"\b[A-Z]{1,2}\d{3}[-\s]?\d{3}[-\s]?\d{3}\b",
     "passport": r"\b[A-Z]{1,2}\d{7,9}\b(?=.{0,30}\b(passport)\b)",
     "dob_with_name": r"\b(DOB|date of birth|born on|birthday)[:\s]+\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4}\b",
+    "dob": r"\b(my )?(date of birth|DOB|birthday) is \d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4}\b",
     "medical_record": r"\bMRN[:\s]?\d{6,10}\b|\bmedical record (number|#)[:\s]?\d+\b",
 }
 
@@ -56,6 +57,22 @@ _THIRD_PARTY_PATTERNS: list[str] = [
     # Someone else's personal details
     r"\b(his|her|their).{0,20}(account|ssn|salary|record|information|profile|number)\b",
 ]
+
+_FIRST_PERSON_SAFE_PATTERNS: list[str] = [
+    r"\bi accidentally\b",
+    r"\bwhat do i do\b",
+    r"\bmy card.{0,30}(charged|incorrect|wrong)\b",
+    r"\bmy (direct deposit|account).{0,30}(incorrect|wrong|error|help)\b",
+    r"\bdata retention policy\b",
+    r"\bemployee records policy\b",
+    r"\bour (data|retention|privacy) policy\b",
+    r"\bi need help with my\b",
+    r"\bmy direct deposit\b",
+    r"\bmy account number\b",
+]
+
+def _is_first_person_safe(text: str) -> bool:
+    return any(re.search(p, text, re.IGNORECASE) for p in _FIRST_PERSON_SAFE_PATTERNS)
 
 CANNED_RESPONSE_REDACT = """Just a heads up — I noticed your message contained what looks like sensitive personal information (like a Social Security Number or account number). I've removed it before processing your question to keep your data safe.
 
@@ -146,8 +163,7 @@ class DataPrivacyGuardrail:
     name = "data_privacy"
 
     async def check(self, message: str, user_email: str) -> GuardrailVerdict:
-        # Third-party data request → always BLOCK
-        if _is_third_party_request(message):
+        if not _is_first_person_safe(message) and _is_third_party_request(message):
             return GuardrailVerdict(
                 action=Action.BLOCK,
                 category="DATA_PRIVACY",
