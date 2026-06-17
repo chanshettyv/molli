@@ -23,6 +23,7 @@ from molli_shared.config import get_settings
 from molli_shared.guardrails.chain import run_chain, scan_gemini_output
 
 from app.cards import dialog
+from app.cards.answer_card import answer_message
 from app.cards.ticket_mapper import build_ticket_payload
 from app.gemini_client import ask_gemini
 
@@ -155,7 +156,7 @@ async def chat_event(request: Request) -> dict[str, Any]:
         if chain_result.append_to_response:
             reply_text = f"{reply_text}\n\n{chain_result.append_to_response}"
 
-        return _chat_reply(reply_text)
+        return answer_message(reply_text)
 
     if event_type == "ADDED_TO_SPACE":
         return _chat_reply(
