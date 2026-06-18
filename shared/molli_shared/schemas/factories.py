@@ -81,7 +81,7 @@ def make_draft(
         "computer_name_if_it_issue": _fc("LAPTOP-LB-014", 0.65, "lookup"),
     }
     if include_more_detail:
-        defaults["original_more_detail"] = _fc("Other", 1.0, "default")
+        defaults["original_more_detail"] = _fc("Password Issues", 1.0, "default")
 
     # Apply caller overrides (including explicit None to clear a field).
     for name, fc in field_overrides.items():

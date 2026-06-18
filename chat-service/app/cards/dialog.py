@@ -198,17 +198,6 @@ def open_dialog(draft: TicketDraft) -> dict[str, Any]:
                                         }
                                     },
                                     {
-                                        "selectionInput": {
-                                            "name": "status",
-                                            "label": "Status",
-                                            "type": "DROPDOWN",
-                                            "items": [
-                                                {"text": s["name"], "value": str(s["value"])}
-                                                for s in form_options.STATUSES
-                                            ],
-                                        }
-                                    },
-                                    {
                                         "textInput": {
                                             "label": "Computer Name",
                                             "type": "SINGLE_LINE",
@@ -255,7 +244,6 @@ def open_dialog(draft: TicketDraft) -> dict[str, Any]:
                                                                 "group",
                                                                 "affectedLocation",
                                                                 "systemItem",
-                                                                "status",
                                                                 "priority",
                                                                 "description",
                                                             ],
