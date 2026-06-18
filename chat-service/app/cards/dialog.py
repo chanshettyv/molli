@@ -9,7 +9,28 @@ from __future__ import annotations
 
 from typing import Any
 
+from molli_shared.schemas.ticket import FieldConfidence, TicketDraft
+
 from app.cards import form_options
+
+
+def _val(field: FieldConfidence | None) -> Any:
+    """Pull a value out of a draft's FieldConfidence wrapper.
+
+    Returns "" when the field is absent or Molli had no proposal (value=None),
+    so a text widget renders empty rather than crashing on None.value.
+    """
+    if field is None or field.value is None:
+        return None
+    return field.value
+
+
+def _str_val(field: FieldConfidence | None) -> str:
+    """Like _val, but stringified for widget `value` (handles int fields like
+    group_id/priority). Returns "" when there's nothing to pre-fill."""
+    v = _val(field)
+    return "" if v is None else str(v)
+
 
 SERVICE_URL = "https://molli-chat-service-719635778769.us-central1.run.app/"
 
@@ -32,7 +53,7 @@ def trigger_card() -> dict[str, Any]:
                                                     "buttonList": {
                                                         "buttons": [
                                                             {
-                                                                "text": "Create a Ticket",
+                                                                "text": "Full draft",
                                                                 "onClick": {
                                                                     "action": {
                                                                         "function": SERVICE_URL,
@@ -41,11 +62,53 @@ def trigger_card() -> dict[str, Any]:
                                                                             {
                                                                                 "key": "actionName",
                                                                                 "value": "openInitialDialog",
-                                                                            }
+                                                                            },
+                                                                            {
+                                                                                "key": "draftType",
+                                                                                "value": "full",
+                                                                            },
                                                                         ],
                                                                     }
                                                                 },
-                                                            }
+                                                            },
+                                                            {
+                                                                "text": "Partial draft",
+                                                                "onClick": {
+                                                                    "action": {
+                                                                        "function": SERVICE_URL,
+                                                                        "interaction": "OPEN_DIALOG",
+                                                                        "parameters": [
+                                                                            {
+                                                                                "key": "actionName",
+                                                                                "value": "openInitialDialog",
+                                                                            },
+                                                                            {
+                                                                                "key": "draftType",
+                                                                                "value": "partial",
+                                                                            },
+                                                                        ],
+                                                                    }
+                                                                },
+                                                            },
+                                                            {
+                                                                "text": "Empty draft",
+                                                                "onClick": {
+                                                                    "action": {
+                                                                        "function": SERVICE_URL,
+                                                                        "interaction": "OPEN_DIALOG",
+                                                                        "parameters": [
+                                                                            {
+                                                                                "key": "actionName",
+                                                                                "value": "openInitialDialog",
+                                                                            },
+                                                                            {
+                                                                                "key": "draftType",
+                                                                                "value": "empty",
+                                                                            },
+                                                                        ],
+                                                                    }
+                                                                },
+                                                            },
                                                         ]
                                                     }
                                                 }
@@ -62,17 +125,29 @@ def trigger_card() -> dict[str, Any]:
     }
 
 
-def open_dialog() -> dict[str, Any]:
+def open_dialog(draft: TicketDraft) -> dict[str, Any]:
     """Response to the openInitialDialog click: push the IT issue intake dialog."""
+    sel_group = _str_val(draft.group_id)
+    sel_system = _val(draft.original_system)
+    sel_priority = _str_val(draft.priority)
+    sel_locations = set(_val(draft.msf_affected_location) or [])
 
-    location_items = [{"text": loc, "value": loc} for loc in form_options.LOCATIONS]
-    system_items = [{"text": item, "value": item} for item in form_options.SYSTEM_ITEMS]
-    group_items = [{"text": g["name"], "value": str(g["id"])} for g in form_options.GROUPS]
-    status_items = [{"text": s["name"], "value": str(s["value"])} for s in form_options.STATUSES]
-    priority_items = [
-        {"text": p["name"], "value": str(p["value"])} for p in form_options.PRIORITIES
+    location_items = [
+        {"text": loc, "value": loc, "selected": loc in sel_locations}
+        for loc in form_options.LOCATIONS
     ]
-
+    system_items = [
+        {"text": item, "value": item, "selected": item == sel_system}
+        for item in form_options.SYSTEM_ITEMS
+    ]
+    group_items = [
+        {"text": g["name"], "value": str(g["id"]), "selected": str(g["id"]) == sel_group}
+        for g in form_options.GROUPS
+    ]
+    priority_items = [
+        {"text": p["name"], "value": str(p["value"]), "selected": str(p["value"]) == sel_priority}
+        for p in form_options.PRIORITIES
+    ]
     return {
         "action": {
             "navigations": [
@@ -87,7 +162,7 @@ def open_dialog() -> dict[str, Any]:
                                             "label": "Email",
                                             "type": "SINGLE_LINE",
                                             "name": "email",
-                                            "value": "prefill-test@preiss.com",
+                                            "value": _str_val(draft.email),
                                         }
                                     },
                                     {
@@ -95,6 +170,7 @@ def open_dialog() -> dict[str, Any]:
                                             "label": "Subject",
                                             "type": "SINGLE_LINE",
                                             "name": "subject",
+                                            "value": _str_val(draft.subject),
                                         }
                                     },
                                     {
@@ -122,46 +198,30 @@ def open_dialog() -> dict[str, Any]:
                                         }
                                     },
                                     {
+                                        "selectionInput": {
+                                            "name": "status",
+                                            "label": "Status",
+                                            "type": "DROPDOWN",
+                                            "items": [
+                                                {"text": s["name"], "value": str(s["value"])}
+                                                for s in form_options.STATUSES
+                                            ],
+                                        }
+                                    },
+                                    {
                                         "textInput": {
                                             "label": "Computer Name",
                                             "type": "SINGLE_LINE",
                                             "name": "computerName",
+                                            "value": _str_val(draft.computer_name_if_it_issue),
                                         }
                                     },
-                                    # NOTE: `columns` is first-time-use in this dialog and
-                                    # unconfirmed in the Add-On envelope. If the dialog throws
-                                    # a parse error on open, this is suspect #1 — fall back to
-                                    # two stacked RADIO_BUTTON selectionInputs.
                                     {
-                                        "columns": {
-                                            "columnItems": [
-                                                {
-                                                    "horizontalSizeStyle": "FILL_AVAILABLE_SPACE",
-                                                    "widgets": [
-                                                        {
-                                                            "selectionInput": {
-                                                                "name": "status",
-                                                                "label": "Status *",
-                                                                "type": "RADIO_BUTTON",
-                                                                "items": status_items,
-                                                            }
-                                                        }
-                                                    ],
-                                                },
-                                                {
-                                                    "horizontalSizeStyle": "FILL_AVAILABLE_SPACE",
-                                                    "widgets": [
-                                                        {
-                                                            "selectionInput": {
-                                                                "name": "priority",
-                                                                "label": "Priority *",
-                                                                "type": "RADIO_BUTTON",
-                                                                "items": priority_items,
-                                                            }
-                                                        }
-                                                    ],
-                                                },
-                                            ]
+                                        "selectionInput": {
+                                            "name": "priority",
+                                            "label": "Priority *",
+                                            "type": "RADIO_BUTTON",
+                                            "items": priority_items,
                                         }
                                     },
                                     {"divider": {}},
@@ -170,6 +230,7 @@ def open_dialog() -> dict[str, Any]:
                                             "label": "Description",
                                             "type": "MULTIPLE_LINE",
                                             "name": "description",
+                                            "value": _str_val(draft.description),
                                         }
                                     },
                                     {

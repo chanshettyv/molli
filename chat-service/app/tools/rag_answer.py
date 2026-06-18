@@ -188,8 +188,7 @@ def answer_with_citations(query: str, top_k: int = _DEFAULT_TOP_K) -> RagAnswer:
         # Neighbours found but no text in the store -- likely the index has
         # chunks indexed before the side store was populated. Re-sync needed.
         log.warning("rag_no_stored_text", ids=ordered_ids)
-        return RagAnswer(text=NO_CONTEXT_MESSAGE, no_context=True,
-                         chunks_retrieved=len(neighbours))
+        return RagAnswer(text=NO_CONTEXT_MESSAGE, no_context=True, chunks_retrieved=len(neighbours))
 
     prompt, citations = _build_prompt(query, ordered_ids, stored)
 

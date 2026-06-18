@@ -93,6 +93,8 @@ class ChunkStore:
             if not snap.exists:
                 continue
             d = snap.to_dict()
+            if d is None:
+                continue
             out[snap.id] = StoredChunk(
                 datapoint_id=snap.id,
                 text=d.get("text", ""),

@@ -65,7 +65,8 @@ def get_settings() -> Settings:
         use_gemini=os.environ.get("MOLLI_USE_GEMINI", "true").lower() != "false",
         gemini_model=os.environ.get("GEMINI_MODEL", "gemini-2.5-flash"),
         gemini_temperature=float(os.environ.get("GEMINI_TEMPERATURE", "0.4")),
-        freshservice_dry_run=os.environ.get("FRESHSERVICE_DRY_RUN", "false"),
+        freshservice_dry_run=os.environ.get("FRESHSERVICE_DRY_RUN", "false").lower()
+        != "false",
         freshservice_api_key=os.environ["FRESHSERVICE_API_KEY"],
     )
 

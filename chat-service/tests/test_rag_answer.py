@@ -39,12 +39,11 @@ def test_formatted_no_citations_is_plain() -> None:
 def test_build_prompt_numbers_sources_and_dedupes_urls() -> None:
     ordered_ids = ["a::0", "a::1", "b::0"]
     stored = {
-        "a::0": StoredChunk("a::0", "First chunk text.", "a", "Article A",
-                            "https://x/a", "Intro"),
-        "a::1": StoredChunk("a::1", "Second chunk text.", "a", "Article A",
-                            "https://x/a", "Details"),
-        "b::0": StoredChunk("b::0", "Other article text.", "b", "Article B",
-                            "https://x/b", ""),
+        "a::0": StoredChunk("a::0", "First chunk text.", "a", "Article A", "https://x/a", "Intro"),
+        "a::1": StoredChunk(
+            "a::1", "Second chunk text.", "a", "Article A", "https://x/a", "Details"
+        ),
+        "b::0": StoredChunk("b::0", "Other article text.", "b", "Article B", "https://x/b", ""),
     }
     prompt, citations = _build_prompt("how do I X?", ordered_ids, stored)
     # All three chunks numbered in the prompt

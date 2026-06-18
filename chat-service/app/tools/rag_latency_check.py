@@ -82,7 +82,7 @@ def main() -> None:
     print(f"  mean latency:   {statistics.mean(latencies):.2f}s")
     print(f"  median latency: {statistics.median(latencies):.2f}s")
     print(f"  max  latency:   {max(latencies):.2f}s")
-    over = [l for l in latencies if l > BUDGET_SECONDS]
+    over = [lat for lat in latencies if lat > BUDGET_SECONDS]
     print(f"  over {BUDGET_SECONDS:.0f}s budget: {len(over)}")
     verdict = "PASS" if not over else f"FAIL ({len(over)} over budget)"
     print(f"  latency budget: {verdict}")

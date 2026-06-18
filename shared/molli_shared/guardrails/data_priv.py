@@ -73,8 +73,10 @@ _FIRST_PERSON_SAFE_PATTERNS: list[str] = [
     r"\bwhere can i find.{0,40}policy\b",
 ]
 
+
 def _is_first_person_safe(text: str) -> bool:
     return any(re.search(p, text, re.IGNORECASE) for p in _FIRST_PERSON_SAFE_PATTERNS)
+
 
 CANNED_RESPONSE_REDACT = """Just a heads up — I noticed your message contained what looks like sensitive personal information (like a Social Security Number or account number). I've removed it before processing your question to keep your data safe.
 

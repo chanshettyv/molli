@@ -10,6 +10,8 @@ dimensions must match or upserts will be rejected.
 
 from __future__ import annotations
 
+from typing import cast
+
 import vertexai
 from vertexai.language_models import TextEmbeddingInput, TextEmbeddingModel
 
@@ -45,7 +47,9 @@ class Embedder:
                 TextEmbeddingInput(text=t, task_type=_TASK_TYPE, title=title)
                 for t in batch
             ]
-            results = self._model.get_embeddings(inputs)
+            results = self._model.get_embeddings(
+                cast(list[str | TextEmbeddingInput], inputs)
+            )
             for r in results:
                 if len(r.values) != _EXPECTED_DIMS:
                     raise ValueError(

@@ -31,10 +31,10 @@ import logging
 import time
 from datetime import UTC, datetime
 
+from molli_shared.chunk_store import ChunkStore, StoredChunk
 from molli_shared.clients.document360 import Article, Document360Client
 from molli_shared.config import get_settings
 
-from molli_shared.chunk_store import ChunkStore, StoredChunk
 from sync_job.chunking import chunk_html
 from sync_job.embedding import Embedder
 from sync_job.index_store import IndexedChunk, VectorIndex
@@ -173,29 +173,20 @@ def run_sync(skip_watermark: bool = False, limit: int | None = None) -> dict[str
             )
             for c, v in zip(chunks, vectors, strict=True)
         ]
-        all_stored.extend([
-
-            StoredChunk(
-
-                datapoint_id=ic.datapoint_id,
-
-                text=c.text,
-
-                article_id=article.id,
-
-                title=article.title,
-
-                url=article.url or "",
-
-                heading=c.heading,
-
-                category_id=article.category_id or "",
-
-            )
-
-            for c, ic in zip(chunks, indexed)
-
-        ])
+        all_stored.extend(
+            [
+                StoredChunk(
+                    datapoint_id=ic.datapoint_id,
+                    text=c.text,
+                    article_id=article.id,
+                    title=article.title,
+                    url=article.url or "",
+                    heading=c.heading,
+                    category_id=article.category_id or "",
+                )
+                for c, ic in zip(chunks, indexed, strict=True)
+            ]
+        )
 
         all_indexed.extend(indexed)
         total_chunks += len(indexed)
@@ -214,19 +205,12 @@ def run_sync(skip_watermark: bool = False, limit: int | None = None) -> dict[str
 
     # 6c. Persist chunk text to Firestore so chat-service can ground answers
 
-
     # on real content (Vector Search stores only vectors + metadata, not text).
 
-
     if all_stored:
-
-
         written = chunk_store.put_many(all_stored)
 
-
         log.info("wrote %d chunk(s) to the chunk store", written)
-
-
 
     # 7. Advance the watermark to the run start time, and persist the set of
     # articles that failed this run so the next run retries them (they're older

@@ -7,6 +7,7 @@ Real logic lands in Phase 1 and 2.
 
 from __future__ import annotations
 
+from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from typing import Any
 
@@ -21,6 +22,7 @@ from molli_shared.clients.ticketing import (
 )
 from molli_shared.config import get_settings
 from molli_shared.guardrails.chain import run_chain, scan_gemini_output
+from molli_shared.schemas.factories import make_draft, make_empty_draft, make_partial_draft
 
 from app.cards import dialog
 from app.cards.answer_card import answer_message
@@ -68,7 +70,7 @@ def _extract_form_inputs(event: dict[str, Any]) -> dict[str, Any]:
 
     def single(name: str) -> str:
         """First value for a single-value widget; '' if absent."""
-        return form_inputs.get(name, {}).get("stringInputs", {}).get("value", [""])[0]
+        return str(form_inputs.get(name, {}).get("stringInputs", {}).get("value", [""])[0])
 
     def multi(name: str) -> list[str]:
         """All values for a multi-select; drops empty strings."""
@@ -88,7 +90,7 @@ def _extract_form_inputs(event: dict[str, Any]) -> dict[str, Any]:
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI):
+async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     """Construct the Freshservice client once per container at startup and
     close it (and its httpx connection pool) at shutdown. Cloud Run may run
     several container instances under load; each gets its own client, which
@@ -169,9 +171,15 @@ async def chat_event(request: Request) -> dict[str, Any]:
         action = common.get("parameters", {}).get("actionName", "")
         log.info("card_click_received", action=action)
         if action == "openInitialDialog":
-            resp = dialog.open_dialog()
-            log.info("outgoing_dialog_payload", payload=resp)
-            return resp
+            draft_type = common.get("parameters", {}).get(
+                "draftType", ""
+            )  # however you read action params
+            draft = {
+                "full": make_draft,
+                "partial": make_partial_draft,
+                "empty": make_empty_draft,
+            }.get(draft_type, make_draft)()
+            return dialog.open_dialog(draft)
 
         if action == "submitNameDialog":
             inputs = _extract_form_inputs(event)
