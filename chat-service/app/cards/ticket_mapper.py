@@ -33,7 +33,7 @@ from molli_shared.schemas.ticket import (
 )
 
 # Injected constants — see module docstring.
-_ORIGINAL_MORE_DETAIL = "Other"
+_ORIGINAL_MORE_DETAIL = "Password Issues"
 _SOURCE_CHAT = 4
 _TYPE_INCIDENT = "Incident"
 
