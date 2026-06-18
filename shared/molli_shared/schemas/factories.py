@@ -79,6 +79,7 @@ def make_draft(
         ),
         "msf_affected_location": _fc(["Raleigh Condos"], 0.70, "inferred"),
         "computer_name_if_it_issue": _fc("LAPTOP-LB-014", 0.65, "lookup"),
+        "status": _fc(2, 1.0, "default"),
     }
     if include_more_detail:
         defaults["original_more_detail"] = _fc("Password Issues", 1.0, "default")
@@ -127,4 +128,5 @@ def make_empty_draft() -> TicketDraft:
         msf_affected_location=None,
         computer_name_if_it_issue=None,
         include_more_detail=False,
+        status=None,
     )
