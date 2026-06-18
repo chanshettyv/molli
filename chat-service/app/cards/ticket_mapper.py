@@ -78,7 +78,6 @@ def build_ticket_payload(inputs: dict[str, Any]) -> TicketCreatePayload:
         description=inputs["description"],
         group_id=int(inputs["group"]),
         custom_fields=custom_fields,
-        status=int(inputs["status"]),
         priority=int(inputs["priority"]),
         source=_SOURCE_CHAT,
         type=_TYPE_INCIDENT,
