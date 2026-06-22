@@ -12,6 +12,7 @@ Audit basis:
 """
 
 from dataclasses import dataclass
+from typing import Any
 
 
 @dataclass(frozen=True)
@@ -114,7 +115,7 @@ def format_description(spec: RequestSpec, resolved: dict[str, str]) -> str:
     return "\n".join(lines)
 
 
-def build_ticket_fields(spec: RequestSpec, values: dict[str, str]) -> dict[str, object]:
+def build_ticket_fields(spec: RequestSpec, values: dict[str, str]) -> dict[str, Any]:
     """
     Single entry point: given collected values, return the overrides dict
     to merge into to_payload(overrides=...). Resolves values once so subject

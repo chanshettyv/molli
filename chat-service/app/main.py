@@ -91,9 +91,10 @@ def _extract_form_inputs(event: dict[str, Any]) -> dict[str, Any]:
 
 
 def _sender_email_from_event(event: dict[str, Any]) -> str:
-    """Sender email off the CARD_CLICKED payload; '' if absent."""
-    payload = event.get("chat", {}).get("buttonClickedPayload", {})
-    return payload.get("user", {}).get("email", "")
+    """Sender email from the chat user object; '' if absent."""
+    chat: dict[str, Any] = event.get("chat") or {}
+    user: dict[str, Any] = chat.get("user") or {}
+    return str(user.get("email") or "")
 
 
 def _test_values_for(request_type: str, sender_email: str) -> dict[str, str]:
