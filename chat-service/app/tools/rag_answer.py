@@ -10,15 +10,17 @@ Flow:
           -> Gemini generates an answer citing sources inline as [1], [2]
           -> assemble a deduplicated citation list (title + D360 URL)
 
+No-context handling: Vector Search always returns top-k neighbours even for an
+off-topic query, so an empty result set is NOT a reliable "not covered" signal.
+Instead the model is told to emit the exact token INSUFFICIENT_CONTEXT when the
+retrieved sources don't actually answer the question; we detect that and set
+no_context=True so the caller can fall back to a general answer.
+
 Design choices:
-- Answers ONLY from retrieved chunk text. If the chunks don't cover the
-  question, the model is told to say so rather than guess. No hallucinated
-  Preiss policy.
-- Uses settings.gemini_model (gemini-2.5-flash) -- NOT 1.5 Pro. The Sprint 1
-  spike established 1.5 Pro is not a valid Vertex model id; 2.5-flash is also
-  the better latency choice for the <30s first-response budget.
-- Lazy init + broad error fallback (same pattern as gemini_client.py), so the
-  Chat handler always gets a usable reply.
+- Answers ONLY from retrieved chunk text. No hallucinated Preiss policy.
+- Uses settings.gemini_model (gemini-2.5-flash) -- NOT 1.5 Pro (not a valid
+  Vertex model id; flash is also better for the <30s budget).
+- Lazy init + broad error fallback (same pattern as gemini_client.py).
 """
 
 from __future__ import annotations
@@ -38,8 +40,10 @@ _DEPLOYED_INDEX_ID = "molli_knowledge_stream"
 _PUBLIC_ENDPOINT_DOMAIN = "163164439.us-central1-719635778769.vdb.vertexai.goog"
 
 _DEFAULT_TOP_K = 5
-# Cap chunk text fed to the model so a few long chunks can't blow the prompt.
 _MAX_CHARS_PER_CHUNK = 2000
+
+# Sentinel the model emits when the retrieved sources don't answer the question.
+_INSUFFICIENT = "INSUFFICIENT_CONTEXT"
 
 RAG_SYSTEM_INSTRUCTION = (
     "You are Molli, Preiss's AI-powered employee assistant for IT, Operations, "
@@ -49,8 +53,9 @@ RAG_SYSTEM_INSTRUCTION = (
     "knowledge about Preiss's internal systems, policies, or people.\n"
     "2. Cite sources inline with bracketed numbers like [1] or [2], right "
     "after the claim they support.\n"
-    "3. If the sources don't contain enough to answer, say so plainly and "
-    "suggest a Freshservice ticket or Preiss Central. Do not fabricate.\n"
+    "3. If the provided sources do not actually answer the question, respond "
+    "with EXACTLY the single token INSUFFICIENT_CONTEXT and nothing else -- no "
+    "explanation, no apology, no citations. Do not fabricate.\n"
     "4. Be concise, friendly, professional. Prefer clear steps for how-tos.\n"
 )
 
@@ -127,12 +132,7 @@ def _get_retrieval() -> tuple[Embedder, VectorIndex, ChunkStore]:
 def _build_prompt(
     query: str, ordered_ids: list[str], stored: dict[str, StoredChunk]
 ) -> tuple[str, list[Citation]]:
-    """Render retrieved chunk text as numbered sources and build the prompt.
-
-    Preserves retrieval rank order. Skips ids missing from the store (e.g. a
-    chunk indexed before the side store existed). Citations dedupe by URL but
-    each source keeps its own number so the model can cite precisely.
-    """
+    """Render retrieved chunk text as numbered sources and build the prompt."""
     source_blocks: list[str] = []
     citations: list[Citation] = []
     seen_urls: set[str] = set()
@@ -154,14 +154,19 @@ def _build_prompt(
         f"Employee question: {query}\n\n"
         f"Numbered sources from Preiss Central (Document360):\n\n"
         f"{sources_text}\n\n"
-        f"Answer using only these sources, citing inline like [1]. If they "
-        f"don't cover it, say so."
+        f"Answer using only these sources, citing inline like [1]. If these "
+        f"sources do not actually answer the question, reply with exactly "
+        f"{_INSUFFICIENT} and nothing else."
     )
     return prompt, citations
 
 
 def answer_with_citations(query: str, top_k: int = _DEFAULT_TOP_K) -> RagAnswer:
-    """Retrieve, ground on chunk text, generate. Never raises."""
+    """Retrieve, ground on chunk text, generate. Never raises.
+
+    Sets no_context=True when retrieval is empty OR when the model judges the
+    retrieved sources insufficient (emits the INSUFFICIENT_CONTEXT sentinel).
+    """
     if not query.strip():
         return RagAnswer(text=NO_CONTEXT_MESSAGE, no_context=True)
 
@@ -185,8 +190,6 @@ def answer_with_citations(query: str, top_k: int = _DEFAULT_TOP_K) -> RagAnswer:
         return RagAnswer(text=FALLBACK_MESSAGE, chunks_retrieved=len(neighbours))
 
     if not stored:
-        # Neighbours found but no text in the store -- likely the index has
-        # chunks indexed before the side store was populated. Re-sync needed.
         log.warning("rag_no_stored_text", ids=ordered_ids)
         return RagAnswer(text=NO_CONTEXT_MESSAGE, no_context=True, chunks_retrieved=len(neighbours))
 
@@ -206,6 +209,14 @@ def answer_with_citations(query: str, top_k: int = _DEFAULT_TOP_K) -> RagAnswer:
     except Exception as exc:  # noqa: BLE001
         log.error("rag_generation_failed", error=str(exc))
         return RagAnswer(text=FALLBACK_MESSAGE, chunks_retrieved=len(neighbours))
+
+    # Model judged the retrieved sources insufficient -> signal no_context so
+    # the caller can fall back to a general answer. Tolerate the sentinel
+    # appearing alone or with stray punctuation/whitespace.
+    if text.replace("*", "").strip().upper().startswith(_INSUFFICIENT):
+        log.info("rag_insufficient_context", query=query)
+        return RagAnswer(text=NO_CONTEXT_MESSAGE, no_context=True,
+                         chunks_retrieved=len(neighbours))
 
     cited = [c for c in citations if f"[{c.number}]" in text]
     final_citations = cited or citations

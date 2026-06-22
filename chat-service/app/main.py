@@ -28,7 +28,8 @@ from app.cards import dialog
 from app.cards.answer_card import answer_message
 from app.cards.structured_requests import SPECS, build_ticket_fields
 from app.cards.ticket_mapper import build_ticket_payload
-from app.gemini_client import ask_gemini
+from app.gemini_client import FALLBACK_MESSAGE, ask_gemini
+from app.tools.rag_answer import answer_with_citations
 
 
 def _classify(event: dict[str, Any]) -> tuple[str, dict[str, Any]]:
@@ -174,7 +175,22 @@ async def chat_event(request: Request) -> dict[str, Any]:
 
         settings = get_settings()
         if settings.use_gemini:
-            reply_text = ask_gemini(chain_result.message_to_gemini or user_text)
+            gemini_query = chain_result.message_to_gemini or user_text
+            rag = answer_with_citations(gemini_query)
+            if not rag.no_context:
+                reply_text = rag.formatted()
+            else:
+                general = ask_gemini(gemini_query)
+                if general.strip() == FALLBACK_MESSAGE.strip():
+                    reply_text = rag.text
+                else:
+                    disclaimer = (
+                        "I couldn't find anything in Preiss Central about this, so "
+                        "the following is general guidance and may not match Preiss's "
+                        "actual process. Please verify or submit a Freshservice ticket "
+                        "if you need the official answer.\n\n"
+                    )
+                    reply_text = disclaimer + general
             reply_text, _ = await scan_gemini_output(reply_text, user_email, space_id, session_id)
         else:
             reply_text = (
