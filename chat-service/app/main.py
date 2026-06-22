@@ -22,10 +22,11 @@ from molli_shared.clients.ticketing import (
 )
 from molli_shared.config import get_settings
 from molli_shared.guardrails.chain import run_chain, scan_gemini_output
-from molli_shared.schemas.factories import make_draft, make_empty_draft, make_partial_draft
+from molli_shared.schemas.factories import _fc, make_draft, make_empty_draft, make_partial_draft
 
 from app.cards import dialog
 from app.cards.answer_card import answer_message
+from app.cards.structured_requests import SPECS, build_ticket_fields
 from app.cards.ticket_mapper import build_ticket_payload
 from app.gemini_client import ask_gemini
 
@@ -86,6 +87,30 @@ def _extract_form_inputs(event: dict[str, Any]) -> dict[str, Any]:
         "status": single("status"),
         "priority": single("priority"),
         "description": single("description"),
+    }
+
+
+def _sender_email_from_event(event: dict[str, Any]) -> str:
+    """Sender email off the CARD_CLICKED payload; '' if absent."""
+    payload = event.get("chat", {}).get("buttonClickedPayload", {})
+    return payload.get("message", {}).get("sender", {}).get("email", "")
+
+
+def _test_values_for(request_type: str, sender_email: str) -> dict[str, str]:
+    """Hardcoded collected values for the test triggers. Replaced by
+    Kautilya's collection step when #38 lands — same dict shape."""
+    if request_type == "entrata_access":
+        return {
+            "requester": sender_email,
+            "access_for": "Seth Hooper",
+            "property": "The Forum",
+            "permissions": "Add charges to ledger",
+        }
+    return {
+        "requester": sender_email,
+        "action": "remove",
+        "target_user": "erin@preiss.com",
+        "list_address": "novaknoxville@preiss.com",
     }
 
 
@@ -220,6 +245,25 @@ async def chat_event(request: Request) -> dict[str, Any]:
                 return dialog.submit_notification(
                     "Couldn't reach the ticketing system right now. Please try again shortly."
                 )
+
+        if action == "openStructuredDialog":
+            request_type = common.get("parameters", {}).get("requestType", "")
+            spec = SPECS.get(request_type)
+            if spec is None:
+                log.warning("unknown_request_type", request_type=request_type)
+                return {}
+
+            sender_email = _sender_email_from_event(event)
+            collected = _test_values_for(request_type, sender_email)
+            fields = build_ticket_fields(spec, collected)  # subject, description, group_id
+
+            draft = make_draft(
+                subject=_fc(fields["subject"]),
+                description=_fc(fields["description"]),
+                group_id=_fc(fields["group_id"]),
+            )
+
+            return dialog.open_dialog(draft)
 
         log.info("unhandled_card_click", action=action)
         return {}

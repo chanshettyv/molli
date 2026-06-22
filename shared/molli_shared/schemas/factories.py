@@ -63,7 +63,7 @@ def make_draft(
 
     # Defaults — a realistic "can't log in" IT escalation Molli couldn't resolve.
     defaults: dict[str, FieldConfidence | None] = {
-        "email": _fc("lindsey.bowman@preiss.com", 0.99, "user-stated"),
+        "email": _fc("vedant.chanshetty@preiss.com", 0.99, "user-stated"),
         "subject": _fc("Can't log into Google account", 0.85, "inferred"),
         "description": _fc(
             "User reports being locked out of their Google account after "

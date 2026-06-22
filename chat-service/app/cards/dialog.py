@@ -109,6 +109,44 @@ def trigger_card() -> dict[str, Any]:
                                                                     }
                                                                 },
                                                             },
+                                                            {
+                                                                "text": "Entrata access",
+                                                                "onClick": {
+                                                                    "action": {
+                                                                        "function": SERVICE_URL,
+                                                                        "interaction": "OPEN_DIALOG",
+                                                                        "parameters": [
+                                                                            {
+                                                                                "key": "actionName",
+                                                                                "value": "openStructuredDialog",
+                                                                            },
+                                                                            {
+                                                                                "key": "requestType",
+                                                                                "value": "entrata_access",
+                                                                            },
+                                                                        ],
+                                                                    }
+                                                                },
+                                                            },
+                                                            {
+                                                                "text": "Dist list change",
+                                                                "onClick": {
+                                                                    "action": {
+                                                                        "function": SERVICE_URL,
+                                                                        "interaction": "OPEN_DIALOG",
+                                                                        "parameters": [
+                                                                            {
+                                                                                "key": "actionName",
+                                                                                "value": "openStructuredDialog",
+                                                                            },
+                                                                            {
+                                                                                "key": "requestType",
+                                                                                "value": "distribution_list",
+                                                                            },
+                                                                        ],
+                                                                    }
+                                                                },
+                                                            },
                                                         ]
                                                     }
                                                 }
