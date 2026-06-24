@@ -39,22 +39,24 @@ _PII_PATTERNS: dict[str, str] = {
 }
 
 # Patterns indicating a request about a third party's data (always BLOCK)
+# Third-party PII request patterns (checked case-insensitively).
+# These are intentionally broad — _FIRST_PERSON_SAFE_PATTERNS acts as the allow-list
+# override for legitimate queries like "find the Preiss holiday calendar" or tool lookups.
 _THIRD_PARTY_PATTERNS: list[str] = [
-    # Existing patterns
+    # Verb + specific PII field + "for" implies "for [someone]"
     r"\b(look up|find|show|pull|get|access|summarize).{0,40}\b(salary|ssn|social security|record|background|credit).{0,40}\bfor\b",
+    # Applicant DOB
     r"\bapplicant.{0,30}(DOB|date of birth|\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4})\b",
-    r"\bcan you (look up|find|tell me).{0,30}(john|jane|[A-Z][a-z]+)\b",
-    # Account number + resident/tenant name requests
+    # Resident/tenant account lookups
     r"\b(get to|access|find|pull up|look up|open).{0,40}\b(resident|tenant).{0,40}account\b",
     r"\bresident.{0,20}account.{0,20}number\b",
     r"\baccount (number|#|num).{0,30}\d{4,}\b",
-    # Any message referencing a specific named person + account/record/data
-    r"\b[A-Z][a-z]+\s[A-Z][a-z]+.{0,40}(account|record|ssn|salary|information|data|profile|number)\b",
-    # Asking about a named person's anything
-    r"\b(show|get|find|pull|access|open|look up).{0,30}[A-Z][a-z]+\s[A-Z][a-z]+\b",
+    # "sarah johnson's account record" — two 4+ char words + possessive + PII.
+    # Both words ≥4 chars so "the company's" / "my account's" don't match.
+    r"\b[a-z]{4,}\s[a-z]{4,}'s\s+(account|record|ssn|salary|profile|data|information)\b",
     # Resident/tenant + any identifier
     r"\b(resident|tenant).{0,30}(account|number|record|ssn|dob|date of birth|profile)\b",
-    # Someone else's personal details
+    # Third-person pronoun + PII
     r"\b(his|her|their).{0,20}(account|ssn|salary|record|information|profile|number)\b",
 ]
 
@@ -70,7 +72,9 @@ _FIRST_PERSON_SAFE_PATTERNS: list[str] = [
     r"\bmy direct deposit\b",
     r"\bmy account number\b",
     r"\b(harassment|discrimination|retaliation) (policy|training|module|course)\b",
-    r"\bwhere can i find.{0,40}policy\b",
+    r"\bwhere can i find.{0,40}(policy|calendar|schedule|handbook|form|guide|resource|training|login|portal|link|page)\b",
+    r"\b(holiday|vacation|pto|time off) calendar\b",
+    r"\bpreiss (central|holiday|calendar|schedule|handbook|portal|training)\b",
 ]
 
 

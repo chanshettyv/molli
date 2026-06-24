@@ -79,9 +79,13 @@ _EXCLUSION_PATTERNS: list[str] = [
     r"\bsex (on the|on a|field|column|box|section)\b",  # employment form fields
     r"\bfor sex on\b",  # "fill in for sex on the form"
     r"\bwhat is (the )?fair housing\b",
-    r"\bfair housing (act|law|complaint|process|policy|training)\b",
+    r"\bfair housing (act|law|complaint|process|policy|training|requirements?|compliance)\b",
+    r"\b(comply|complian).{0,40}fair housing\b",
     r"\bour process for.{0,30}fair housing\b",
     r"\bhandle.{0,30}fair housing complaint\b",
+    r"\bnational origin.{0,40}(field|column|box|section|form|required|question|on the)\b",
+    r"\bsource of income.{0,40}(verify|verif|qualif|eligib|question|can i ask|allowed|policy|requirement)\b",
+    r"\b(can i|can we|is it (ok|okay|legal|allowed)).{0,30}(ask|require).{0,30}(source of income|income verification)\b",
 ]
 
 CANNED_RESPONSE = (

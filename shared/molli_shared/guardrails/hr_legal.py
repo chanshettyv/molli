@@ -83,10 +83,14 @@ _INVESTIGATION_PATTERNS: list[str] = [
 
 # Exclusion patterns — general questions that should not trigger
 _EXCLUSION_PATTERNS: list[str] = [
-    r"\bharassment (policy|training|module|course)\b",
-    r"\bdiscrimination (policy|training|module|course)\b",
-    r"\bwhat is (sexual harassment|workplace discrimination)\b",
+    r"\bharassment (policy|training|module|course|definition|complaint process)\b",
+    r"\bdiscrimination (policy|training|module|course|definition)\b",
+    r"\bretaliation (policy|definition|training|module|course|clause|complaint process)\b",
+    r"\bwhat is (sexual harassment|workplace discrimination|retaliation)\b",
+    r"\bwhat'?s (the |our |preiss'?s? )?(retaliation|hostile work environment|harassment|discrimination) policy\b",
     r"\bdefine (harassment|discrimination|retaliation)\b",
+    r"\bhostile work environment (definition|training|policy|module|course|example|scenario|for (a |the )?training)\b",
+    r"\bwithout (it |this )?(looking|appearing|seeming) like (retaliation|harassment|discrimination)\b",
     r"\bworkplace violence (policy|prevention|training|protocol|procedure|program|resources)\b",
     r"\b(violence|threat|intimidation) prevention (policy|program|training|protocol)\b",
 ]

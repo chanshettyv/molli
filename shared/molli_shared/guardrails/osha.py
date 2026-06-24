@@ -60,6 +60,16 @@ _TIER1_EXCLUSIONS: list[str] = [
     # Admin fire-safety tasks (inspections, drills, code review, etc.)
     r"\bfire (safety|inspection|training|code|marshal|prevention|extinguisher|suppression|alarm test)\b",
     r"\bfire drill\b",
+    # Cooking/BBQ smoke is not a fire emergency
+    r"\bsmoke.{0,40}(grill|barbecue|bbq|cookout|smoker|fire pit|stove|oven|kitchen)\b",
+    r"\bpool (cookout|barbecue|bbq|grill|party|event)\b",
+    # Gas leak alarm/detector vs active leak
+    r"\bgas leak.{0,40}(alarm|detector|sensor|test)\b",
+    # Past-tense incident references — administrative questions about historical events
+    r"\b(gas leak|collapsed|fell off (a |the )?ladder|accident|injury).{0,80}last (year|month|week|summer|fall|spring|winter|quarter)\b",
+    r"\blast (year|month|week|summer|fall|spring|winter|quarter).{0,80}(gas leak|collapse|fell|accident|injury)\b",
+    r"\bwas (a |the )?report filed\b",
+    r"\bwhat (forms?|steps?|do i|should i).{0,30}(file|fill|submit)\b",
 ]
 
 # Tier 2 — general OSHA compliance / process questions

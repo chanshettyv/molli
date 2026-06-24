@@ -33,6 +33,12 @@ _EXPLICIT_PATTERNS: list[str] = [
     r"\bend my life\b",
     r"\bending it\b",
     r"\bthinking about ending\b",
+    # Substance use — coping signals
+    r"\b(drinking|using alcohol).{0,40}(to cope|to deal|to get through|to numb|to forget|help[s]? me (sleep|calm|cope))\b",
+    r"\busing (drugs?|pills?|weed|marijuana|substances?).{0,30}(to cope|to deal|to get through|more lately|more than i should)\b",
+    r"\bcan'?t stop (drinking|using|taking (pills?|drugs?))\b",
+    r"\baddicted to (alcohol|pills?|drugs?|drinking|opioids?|painkillers?)\b",
+    r"\bi'?ve (relapsed?|been (drinking|using) again)\b",
 ]
 
 _IMPLICIT_PATTERNS: list[str] = [
@@ -55,13 +61,17 @@ _IMPLICIT_PATTERNS: list[str] = [
     r"\bfeeling (really )?(low|awful|terrible|horrible|worthless)\b",
     r"\bdon'?t want to (exist|come in|do this anymore)\b",
     r"\bdon'?t want to be here\b(?!\s+(for|during|while|when|at|in|to|until|on)\b)",
-    r"\bcan'?t (take|handle|deal with) (this|it) anymore\b",
+    r"\bi can'?t (take|handle|deal with) (this|it) anymore\b",
     r"\bwhat'?s the point (anymore|of (it all|going on|trying|living|being alive|existing|continuing))\b",
     r"\bno reason to (keep going|go on|try)\b",
+    # Substance use — concerning patterns without explicit coping admission
+    r"\bdrinking (every (day|night)|a lot more|to (sleep|relax)|more than i should)\b",
+    r"\brelapsed?\b",
+    r"\bmy (drinking|drug use|substance use|alcohol) (has|is).{0,20}(problem|getting worse|out of control)\b",
 ]
 
 _CRISIS_TERMS: list[str] = [
-    r"\boverdose\b",
+    r"\boverdos(e|es|ed|ing)\b",
     r"\bself[- ]?harm\b",
     r"\bend it all\b",
     r"\bsuicide\b",
@@ -70,6 +80,7 @@ _CRISIS_TERMS: list[str] = [
     r"\bhurt myself\b",
     r"\bwant to hurt (myself|someone)\b",
     r"\bthinking about (hurting|harming)\b",
+    r"\bsubstance (abuse|use disorder|dependency)\b",
 ]
 
 # Figurative / benign patterns that must NOT trigger (exclusion list)
@@ -79,6 +90,8 @@ _EXCLUSION_PATTERNS: list[str] = [
     r"\bdead(line)\b",
     r"\bkilling it\b",  # positive idiom
     r"\bfeeling (really )?low energy\b",  # physical tiredness, not distress
+    r"\b(alcohol|drug|substance).{0,20}(policy|test|testing|screening|free workplace|program)\b",
+    r"\bdrug.{0,20}(test|testing|screen|check)\b",  # HR admin questions about drug testing
 ]
 
 
