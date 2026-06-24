@@ -52,6 +52,16 @@ _TIER1_PATTERNS: list[str] = [
     r"\bsomeone in the (building|property|office) who (shouldn't|doesn't) belong\b",
 ]
 
+# Tier 1 exclusions — admin/idiom uses that are not active emergencies.
+# Checked before Tier 1 triggers; a match here skips the Tier 1 path.
+_TIER1_EXCLUSIONS: list[str] = [
+    # Performance idiom: "the team is on fire this month"
+    r"\b(team|staff|sales|leasing|numbers|performance|we'?re|they'?re) (are |is |'?re )?on fire\b",
+    # Admin fire-safety tasks (inspections, drills, code review, etc.)
+    r"\bfire (safety|inspection|training|code|marshal|prevention|extinguisher|suppression|alarm test)\b",
+    r"\bfire drill\b",
+]
+
 # Tier 2 — general OSHA compliance / process questions
 _TIER2_PATTERNS: list[str] = [
     r"\bhow do i report (a|an) (workplace )?(injury|incident|accident)\b",
@@ -87,6 +97,10 @@ def _is_tier1(text: str) -> bool:
     return any(re.search(p, text, re.IGNORECASE) for p in _TIER1_PATTERNS)
 
 
+def _is_tier1_excluded(text: str) -> bool:
+    return any(re.search(p, text, re.IGNORECASE) for p in _TIER1_EXCLUSIONS)
+
+
 def _is_tier2(text: str) -> bool:
     return any(re.search(p, text, re.IGNORECASE) for p in _TIER2_PATTERNS)
 
@@ -95,8 +109,8 @@ class OSHAGuardrail:
     name = "osha"
 
     async def check(self, message: str, user_email: str) -> GuardrailVerdict:
-        # Tier 1 takes priority — check first
-        if _is_tier1(message):
+        # Tier 1 takes priority — but skip if message matches a known-safe exclusion
+        if _is_tier1(message) and not _is_tier1_excluded(message):
             return GuardrailVerdict(
                 action=Action.ESCALATE,
                 category="OSHA",

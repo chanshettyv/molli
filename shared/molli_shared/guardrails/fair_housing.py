@@ -73,11 +73,11 @@ _EXCLUSION_PATTERNS: list[str] = [
     r"\bsexual harassment\b",  # HR topic, not FHA
     r"\breligious (holiday|accommodation|observance|leave|exemption)\b",  # HR/EEO
     r"\brace condition\b",  # software term
-    r"\bdisability (insurance|benefit|claim|leave)\b",
-    r"\bwhat is (the )?fair housing\b",
-    r"\bfair housing (act|law|complaint|process|policy)\b",
-    r"\bour process for.{0,30}fair housing\b",
-    r"\bhandle.{0,30}fair housing complaint\b",  # HR/benefits
+    r"\b(a race|in a race)\b",  # competitive idiom: "in a race to finish"
+    r"\bdisability (insurance|benefit|claim|leave|accommodation|access|paperwork|form|services|request)\b",
+    r"\breligion (in the workplace|policy|accommodation|training|question)\b",
+    r"\bsex (on the|on a|field|column|box|section)\b",  # employment form fields
+    r"\bfor sex on\b",  # "fill in for sex on the form"
     r"\bwhat is (the )?fair housing\b",
     r"\bfair housing (act|law|complaint|process|policy|training)\b",
     r"\bour process for.{0,30}fair housing\b",

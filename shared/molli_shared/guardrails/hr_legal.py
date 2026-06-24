@@ -87,6 +87,8 @@ _EXCLUSION_PATTERNS: list[str] = [
     r"\bdiscrimination (policy|training|module|course)\b",
     r"\bwhat is (sexual harassment|workplace discrimination)\b",
     r"\bdefine (harassment|discrimination|retaliation)\b",
+    r"\bworkplace violence (policy|prevention|training|protocol|procedure|program|resources)\b",
+    r"\b(violence|threat|intimidation) prevention (policy|program|training|protocol)\b",
 ]
 
 CANNED_RESPONSE = """Thank you for trusting Molli with this. What you've shared sounds serious and deserves proper attention.

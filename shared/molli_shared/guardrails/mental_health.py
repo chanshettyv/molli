@@ -47,16 +47,16 @@ _IMPLICIT_PATTERNS: list[str] = [
     r"\bno one.*notice.*gone\b",
     r"\bstruggling with (anxiety|depression|my mental health)\b",
     r"\bnot (been )?okay for a long time\b",
-    r"\bi'?m not doing (ok|okay)\b",
-    r"\bnot doing (ok|okay)\b",
-    r"\bnot doing well\b",
-    r"\bnot doing great\b",
+    r"\bi'?m not doing (ok|okay)\b(?!\s+(with|on|in|at)\b)",
+    r"\bi'?m not doing well\b(?!\s+(with|on|in|at)\b)",
+    r"\bi'?m not doing great\b(?!\s+(with|on|in|at)\b)",
     r"\bhate myself\b",
     r"\bi hate myself\b",
     r"\bfeeling (really )?(low|awful|terrible|horrible|worthless)\b",
-    r"\bdon'?t want to (be here|exist|come in|do this anymore)\b",
+    r"\bdon'?t want to (exist|come in|do this anymore)\b",
+    r"\bdon'?t want to be here\b(?!\s+(for|during|while|when|at|in|to|until|on)\b)",
     r"\bcan'?t (take|handle|deal with) (this|it) anymore\b",
-    r"\bwhat'?s the point\b",
+    r"\bwhat'?s the point (anymore|of (it all|going on|trying|living|being alive|existing|continuing))\b",
     r"\bno reason to (keep going|go on|try)\b",
 ]
 
@@ -78,6 +78,7 @@ _EXCLUSION_PATTERNS: list[str] = [
     r"\bkill the (process|server|task|thread|job)\b",
     r"\bdead(line)\b",
     r"\bkilling it\b",  # positive idiom
+    r"\bfeeling (really )?low energy\b",  # physical tiredness, not distress
 ]
 
 

@@ -10,7 +10,7 @@ from functools import lru_cache
 
 from dotenv import load_dotenv
 from google.cloud import secretmanager
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class Settings(BaseModel):
@@ -37,6 +37,12 @@ class Settings(BaseModel):
     freshservice_dry_run: bool = (
         False  # safe default; flip to False to create real tickets
     )
+
+    # Auto-escalation ticket routing — confirm group_id with Adam before deploying.
+    # If freshservice_hr_group_id is None, auto-ticket creation is skipped with a warning.
+    freshservice_hr_group_id: int | None = None
+    # msf_affected_location for auto-created escalation tickets; comma-separated in env.
+    freshservice_escalation_location: list[str] = Field(default_factory=lambda: ["Unknown"])
 
     @property
     def freshservice_base_url(self) -> str:
