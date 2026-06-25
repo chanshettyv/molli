@@ -28,6 +28,7 @@ from app.cards import dialog
 from app.cards.answer_card import answer_message
 from app.cards.structured_requests import SPECS, build_ticket_fields
 from app.cards.ticket_mapper import build_ticket_payload
+from app.cards.ticket_prefill import build_prefill_draft, create_ticket_button
 from app.gemini_client import FALLBACK_MESSAGE, ask_gemini
 from app.tools.rag_answer import answer_with_citations
 
@@ -174,14 +175,20 @@ async def chat_event(request: Request) -> dict[str, Any]:
             return _chat_reply(chain_result.response_to_user or "")
 
         settings = get_settings()
+        show_ticket_button = False
         if settings.use_gemini:
             gemini_query = chain_result.message_to_gemini or user_text
             rag = answer_with_citations(gemini_query)
             if not rag.no_context:
                 reply_text = rag.formatted()
             else:
+                show_ticket_button = True
                 general = ask_gemini(gemini_query)
-                if general.strip() == FALLBACK_MESSAGE.strip():
+                _redirect_signals = ("freshservice", "preiss central")
+                gemini_is_redirecting = general.strip() == FALLBACK_MESSAGE.strip() or any(
+                    s in general.lower() for s in _redirect_signals
+                )
+                if gemini_is_redirecting:
                     reply_text = rag.text
                 else:
                     disclaimer = (
@@ -200,7 +207,8 @@ async def chat_event(request: Request) -> dict[str, Any]:
         if chain_result.append_to_response:
             reply_text = f"{reply_text}\n\n{chain_result.append_to_response}"
 
-        return answer_message(reply_text)
+        actions = [create_ticket_button(user_text, user_email)] if show_ticket_button else None
+        return answer_message(reply_text, actions=actions)
 
     if event_type == "ADDED_TO_SPACE":
         return _chat_reply(
@@ -262,6 +270,16 @@ async def chat_event(request: Request) -> dict[str, Any]:
                 return dialog.submit_notification(
                     "Couldn't reach the ticketing system right now. Please try again shortly."
                 )
+
+        if action == "openPrefillDialog":
+            params = common.get("parameters", {})
+            draft = build_prefill_draft(
+                user_email=params.get("userEmail", ""),
+                subject=params.get("subject", ""),
+                user_question=params.get("userQuestion", ""),
+                conversation_id=event.get("space", {}).get("name", "unknown"),
+            )
+            return dialog.open_dialog(draft)
 
         if action == "openStructuredDialog":
             request_type = common.get("parameters", {}).get("requestType", "")

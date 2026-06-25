@@ -75,6 +75,8 @@ _FIRST_PERSON_SAFE_PATTERNS: list[str] = [
     r"\bwhere can i find.{0,40}(policy|calendar|schedule|handbook|form|guide|resource|training|login|portal|link|page)\b",
     r"\b(holiday|vacation|pto|time off) calendar\b",
     r"\bpreiss (central|holiday|calendar|schedule|handbook|portal|training)\b",
+    r"\bcontact (info|information|details)\b",
+    r"\b(phone|email|extension|direct (line|number)).{0,30}(for|of)\b",
 ]
 
 

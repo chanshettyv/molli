@@ -215,8 +215,7 @@ def answer_with_citations(query: str, top_k: int = _DEFAULT_TOP_K) -> RagAnswer:
     # appearing alone or with stray punctuation/whitespace.
     if text.replace("*", "").strip().upper().startswith(_INSUFFICIENT):
         log.info("rag_insufficient_context", query=query)
-        return RagAnswer(text=NO_CONTEXT_MESSAGE, no_context=True,
-                         chunks_retrieved=len(neighbours))
+        return RagAnswer(text=NO_CONTEXT_MESSAGE, no_context=True, chunks_retrieved=len(neighbours))
 
     cited = [c for c in citations if f"[{c.number}]" in text]
     final_citations = cited or citations
