@@ -31,6 +31,7 @@ from app.cards.ticket_mapper import build_ticket_payload
 from app.cards.ticket_prefill import build_prefill_draft, create_ticket_button
 from app.gemini_client import FALLBACK_MESSAGE, ask_gemini
 from app.tools.rag_answer import answer_with_citations
+from molli_shared.intent import classify_intent
 
 
 def _classify(event: dict[str, Any]) -> tuple[str, dict[str, Any]]:
@@ -178,7 +179,9 @@ async def chat_event(request: Request) -> dict[str, Any]:
         show_ticket_button = False
         if settings.use_gemini:
             gemini_query = chain_result.message_to_gemini or user_text
-            rag = answer_with_citations(gemini_query)
+            intent_result = await classify_intent(gemini_query)
+            log.info("intent_classified", intent=intent_result.intent, confidence=intent_result.confidence)
+            rag = answer_with_citations(gemini_query, intent=intent_result.intent)
             if not rag.no_context:
                 reply_text = rag.formatted()
             else:

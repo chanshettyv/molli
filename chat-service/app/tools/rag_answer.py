@@ -161,7 +161,7 @@ def _build_prompt(
     return prompt, citations
 
 
-def answer_with_citations(query: str, top_k: int = _DEFAULT_TOP_K) -> RagAnswer:
+def answer_with_citations(query: str, top_k: int = _DEFAULT_TOP_K, intent: str | None = None) -> RagAnswer:
     """Retrieve, ground on chunk text, generate. Never raises.
 
     Sets no_context=True when retrieval is empty OR when the model judges the
@@ -169,6 +169,14 @@ def answer_with_citations(query: str, top_k: int = _DEFAULT_TOP_K) -> RagAnswer:
     """
     if not query.strip():
         return RagAnswer(text=NO_CONTEXT_MESSAGE, no_context=True)
+
+    # intent is accepted for forward-compatibility: once a D360
+    # category->department map exists, retrieval will soft-boost chunks whose
+    # category matches the predicted department. Until then it is logged but
+    # NOT applied -- retrieval stays unscoped so a wrong intent can't hide the
+    # right answer. See docs/spikes/intent-classification.md.
+    if intent:
+        log.info("rag_intent_hint", intent=intent)
 
     try:
         embedder, index, store = _get_retrieval()
