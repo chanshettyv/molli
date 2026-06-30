@@ -31,7 +31,9 @@ from app.cards.ticket_mapper import build_ticket_payload
 from app.cards.ticket_prefill import build_prefill_draft, create_ticket_button
 from app.gemini_client import FALLBACK_MESSAGE, ask_gemini
 from app.tools.rag_answer import answer_with_citations
+from molli_shared.conversation_store import ConversationStore
 from molli_shared.intent import classify_intent
+from molli_shared.query_rewrite import rewrite_followup
 
 
 def _classify(event: dict[str, Any]) -> tuple[str, dict[str, Any]]:
@@ -131,6 +133,11 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         api_key=settings.freshservice_api_key,
     )
     log.info("ticketing_client_initialized", base_url=settings.freshservice_base_url)
+    app.state.conversations = ConversationStore(
+        project_id=settings.gcp_project_id,
+        database=settings.firestore_database,
+    )
+    log.info("conversation_store_initialized")
     yield
     await app.state.ticketing.aclose()
     log.info("ticketing_client_closed")
@@ -179,6 +186,12 @@ async def chat_event(request: Request) -> dict[str, Any]:
         show_ticket_button = False
         if settings.use_gemini:
             gemini_query = chain_result.message_to_gemini or user_text
+            # Multi-turn: pull recent (DLP-scrubbed) context and rewrite a
+            # follow-up into a standalone query so retrieval embeds the right
+            # thing. No prior turns -> rewrite is a no-op (no extra call).
+            convo = request.app.state.conversations
+            _history = ConversationStore.as_transcript(convo.get_recent(space_id))
+            gemini_query = await rewrite_followup(gemini_query, _history)
             intent_result = await classify_intent(gemini_query)
             log.info("intent_classified", intent=intent_result.intent, confidence=intent_result.confidence)
             rag = answer_with_citations(gemini_query, intent=intent_result.intent)
@@ -202,6 +215,14 @@ async def chat_event(request: Request) -> dict[str, Any]:
                     )
                     reply_text = disclaimer + general
             reply_text, _ = await scan_gemini_output(reply_text, user_email, space_id, session_id)
+            # Persist the turn pair (DLP-scrubbed inside the store). Store the
+            # RAW user_text -- memory reflects what was actually said; the
+            # rewrite was only for retrieval.
+            try:
+                convo.append_turn(space_id, "user", user_text, user_email)
+                convo.append_turn(space_id, "molli", reply_text, user_email)
+            except Exception as exc:  # noqa: BLE001 -- memory must never break the reply
+                log.warning("conversation_append_failed", error=str(exc))
         else:
             reply_text = (
                 f"Hi {user_name or 'there'}! I'm Molli. I'm still being built — check back soon."
