@@ -69,6 +69,10 @@ Rules:
 4. system_raw: name the specific app, software, or hardware involved.
    Examples: "Entrata", "Gmail", "Printer", "Windows", "Google Drive", "Laptop".
    Use null only if the issue has no clear system anchor (e.g. a pure policy question).
+4b. more_detail_raw: the specific issue/sub-category under the chosen system.
+    Free text naming the problem (e.g. "add a user", "can't log in", "system down").
+    Use null if nothing specific is stated. The caller snaps this to the valid
+    Issue list for the chosen system, so approximate wording is fine.
 5. locations_raw: list only property or office names the user explicitly mentioned.
    Use the name as the user stated it. Do NOT invent locations. Empty list [] if none.
 6. priority:
@@ -103,6 +107,7 @@ class TicketAnalysis:
     description: str
     group_label: str  # "IT" | "HR" | "Ops" | "general"
     system_raw: str | None  # free text; caller snaps to SYSTEM_ITEMS
+    more_detail_raw: str | None  # free text; caller snaps to the system's Issue list
     locations_raw: list[str]  # free text list; caller snaps to LOCATIONS
     priority: int  # 1–4
     computer_name: str | None
@@ -175,6 +180,7 @@ def _fallback(user_question: str) -> TicketAnalysis:
         description=_generic_description(user_question),
         group_label="general",
         system_raw=None,
+        more_detail_raw=None,
         locations_raw=[],
         priority=2,
         computer_name=None,
@@ -216,6 +222,9 @@ def _parse(raw: str, user_question: str) -> TicketAnalysis:
     system_raw_val = data.get("system_raw")
     system_raw = str(system_raw_val).strip() if system_raw_val else None
 
+    more_detail_raw_val = data.get("more_detail_raw")
+    more_detail_raw = str(more_detail_raw_val).strip() if more_detail_raw_val else None
+
     raw_locs = data.get("locations_raw", [])
     locations_raw = (
         [str(loc).strip() for loc in raw_locs if loc]
@@ -243,6 +252,7 @@ def _parse(raw: str, user_question: str) -> TicketAnalysis:
         description=description,
         group_label=group_label,
         system_raw=system_raw,
+        more_detail_raw=more_detail_raw,
         locations_raw=locations_raw,
         priority=priority,
         computer_name=computer_name,

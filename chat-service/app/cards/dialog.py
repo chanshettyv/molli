@@ -169,6 +169,11 @@ def open_dialog(draft: TicketDraft) -> dict[str, Any]:
     sel_system = _val(draft.original_system)
     sel_priority = _str_val(draft.priority)
     sel_locations = set(_val(draft.msf_affected_location) or [])
+    sel_more_detail = _val(draft.original_more_detail)
+    more_detail_items = [
+        {"text": md, "value": md, "selected": md == sel_more_detail}
+        for md in form_options.more_detail_options(sel_system or "")
+    ]
 
     location_items = [
         {"text": loc, "value": loc, "selected": loc in sel_locations}
@@ -233,6 +238,14 @@ def open_dialog(draft: TicketDraft) -> dict[str, Any]:
                                             "label": "System",
                                             "type": "DROPDOWN",
                                             "items": system_items,
+                                        }
+                                    },
+                                    {
+                                        "selectionInput": {
+                                            "name": "moreDetail",
+                                            "label": "Issue (More Detail)",
+                                            "type": "DROPDOWN",
+                                            "items": more_detail_items,
                                         }
                                     },
                                     {

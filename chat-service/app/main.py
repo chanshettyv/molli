@@ -94,6 +94,7 @@ def _extract_form_inputs(event: dict[str, Any]) -> dict[str, Any]:
         "group": single("group"),
         "affectedLocation": multi("affectedLocation"),
         "systemItem": single("systemItem"),
+        "moreDetail": single("moreDetail"),
         "status": single("status"),
         "priority": single("priority"),
         "description": single("description"),

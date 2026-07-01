@@ -33,7 +33,6 @@ from molli_shared.schemas.ticket import (
 )
 
 # Injected constants — see module docstring.
-_ORIGINAL_MORE_DETAIL = "Password Issues"
 _SOURCE_CHAT = 4
 _TYPE_INCIDENT = "Incident"
 
@@ -67,7 +66,7 @@ def build_ticket_payload(inputs: dict[str, Any]) -> TicketCreatePayload:
     """
     custom_fields = MolliCustomFields(
         original_system=inputs["systemItem"],
-        original_more_detail=_ORIGINAL_MORE_DETAIL,
+        original_more_detail=inputs["moreDetail"],
         msf_affected_location=inputs["affectedLocation"],
         # Molli traceability fields left unset on purpose — see docstring.
     )

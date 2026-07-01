@@ -23,7 +23,7 @@ from molli_shared.ticket_analysis import (
     snap_to_vocabulary,
 )
 
-from app.cards.form_options import LOCATIONS, SYSTEM_ITEMS
+from app.cards.form_options import LOCATIONS, SYSTEM_ITEMS, more_detail_options
 
 _GROUP_LABEL_TO_ID: dict[str, int | None] = {
     "IT": 5000233136,
@@ -54,12 +54,18 @@ def analysis_to_draft_fields(
     # Locations — snap each free-text name; drop unmatched
     snapped_locations = snap_list_to_vocabulary(analysis.locations_raw, LOCATIONS)
 
+    more_detail_vocab = more_detail_options(snapped_system or "")
+    snapped_more_detail = snap_to_vocabulary(analysis.more_detail_raw or "", more_detail_vocab)
+
     result: dict[str, Any] = {
         "subject": _fc(analysis.subject, 0.85, "inferred"),
         "description": _fc(analysis.description, 0.80, "inferred"),
         "priority": _fc(analysis.priority, 0.60, "inferred"),
         "group_id": _fc(group_id, 0.75, "inferred") if group_id is not None else None,
         "original_system": (_fc(snapped_system, 0.85, "inferred") if snapped_system else None),
+        "original_more_detail": (
+            _fc(snapped_more_detail, 0.75, "inferred") if snapped_more_detail else None
+        ),
         "msf_affected_location": (
             _fc(snapped_locations, 0.70, "inferred") if snapped_locations else None
         ),

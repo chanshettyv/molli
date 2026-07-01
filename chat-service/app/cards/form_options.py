@@ -258,3 +258,320 @@ PRIORITIES: list[dict[str, object]] = [
     {"value": 3, "name": "High"},
     {"value": 4, "name": "Urgent"},
 ]
+
+# ---------------------------------------------------------------------------
+# Issue / "More Detail" (level-2 of the `original_system` nested field).
+# Source: Freshservice ticket_fields dump, field id 5000245243 (nested_field).
+#   level 1 = original_system (System/Item)  -> keys below
+#   level 2 = original_more_detail ("Issue")  -> value lists below
+#   level 3 = original_issue_part_2           -> intentionally ignored
+# HTML entities decoded (&amp; -> &) to match SYSTEM_ITEMS / what FS accepts.
+# NOTE: systems mapping to [] have no level-2 values in Freshservice; the
+#   More Detail dropdown will be empty for them. original_more_detail is a
+#   required str on MolliCustomFields -> needs a schema decision (see Vedant).
+# ---------------------------------------------------------------------------
+MORE_DETAIL_BY_SYSTEM: dict[str, list[str]] = {
+    "Computer/Laptop": [
+        "Not Turning On",
+        "Blue Screen of Death",
+        "Frozen/ Software Not Working",
+        "Mouse/ Keyboard Not Working",
+        "Quote for New/Replacement Computer(s)",
+        "Loaner Request/Checkout",
+        "Other",
+    ],
+    "Daily Number (DN) Spreadsheet": [
+        "Blank rows on report (DN tab)",
+        "Incorrect Prelease Numbers",
+        "Update Goals",
+        "Update Agent Counts",
+        "Update Locked Agent Name",
+        "Other issue",
+    ],
+    "Entrata": [
+        "User Access & Permissions",
+        "System is Down",
+        "BUA",
+        "DocScan (Check & Invoice Scanning)",
+        "Group (Master) Lease",
+        "Homebody Credit Reporting (RentPlus)",
+        "Homebody Insurance",
+        "ILS - Apartments.com, Rent.com, etc",
+        "Import Charges",
+        "Lease Docs & Fees",
+        "Ledgers (Payments, Charges & Credits)",
+        "Reports",
+        "Resident Portal",
+        "Revenue Management (Conventional)",
+        "Screening Issues",
+        "System Settings",
+        "Training Request",
+        "Something Else",
+    ],
+    "Google Apps (Gmail/email / Drive / Calendar / Docs)": [
+        "User account issue",
+        "Password Issues",
+        "Add/remove user on distribution list",
+        "Forward former employee emails",
+        "Not Receiving Emails",
+        "Mail Merge Issues",
+        "Mimecast",
+    ],
+    "IRIS Technologies: Project Request": [],
+    "Realpage - Knock": [
+        "Knock not loading",
+        "User account issue - add/remove user, password issues",
+        "Add/remove property access",
+        "Something is not working",
+        "Add/remove sources/tracking info",
+        "Update office hours",
+        "Setting needs changed",
+        "Need guidance (how to's) or other support",
+    ],
+    "Realpage - On-Site Online Leasing": [
+        "Whoops message / System is unable to send leases",
+        "On-Site not loading",
+        "User account issue - add/remove user, password issues",
+        "Add/remove property access",
+        "Change user permissions (including countersigning)",
+        "Sync Issues (with OneSite)",
+        "Screening issue",
+        "Update fees, charges, or documents",
+        "Update Floorplans",
+        "Refund app fee (Realpage Payments)",
+        "Paylease (Appfolio only) refund, issue, or question",
+        "SSN request (last 4 digits)",
+        "Need guidance (how to's) or other support",
+    ],
+    "Realpage - Onesite, Financial Suite, Unified": [
+        "Unified Login is not loading",
+        "Add/remove user to product(s)",
+        "Password issues",
+        "Add/remove property access to product(s)",
+        "Change user permissions on product(s)",
+    ],
+    "Preiss IQ / Domo": [
+        "Access Issues/Requests",
+        "Mini DN Issues",
+        "Data Questions/Issues",
+        "Other Support",
+    ],
+    "Printer/Copier": [
+        "Computer will not connect to printer",
+        "Scan to Email not working",
+        "Other",
+        "Toner Request",
+    ],
+    "Turn - Workbook, Spreadsheets, Jotforms, Documents, etc": [],
+    "Windows": [
+        "Windows having issues",
+        "Blue Screen of Death",
+        "Other",
+    ],
+    "...": [],
+    "Adobe Products": [
+        "Adobe Reader Not Working",
+        "Order a Subscription",
+        "Other",
+    ],
+    "Amazon Business Account": [],
+    "Amber": [],
+    "Amex/Reconciliation (American Express)": [
+        "Java Update or Cannot Access Website",
+        "Add a Site/Employee - please email corpap@tpco.com",
+        "New Card - please email corpap@tpco.com",
+        "Add GL Accounts - please email corpap@tpco.com",
+    ],
+    "Appfolio": [
+        "Need User Account Created",
+        "Need Property Access Added",
+        "Something is not working",
+        "Import Charges",
+    ],
+    "Atmosphere TV": [],
+    "Bloomberg": [],
+    "Bonus Portal": [],
+    "Canva": [
+        "User Access & Permission",
+        "Something else",
+    ],
+    "CollegeHouse": [],
+    "Community Rewards": [
+        "Add/Remove User",
+        "Add/Remove Property Access",
+        "Rewards Program Question or Issue",
+        "Incentives Program Question or Issue",
+    ],
+    "Corporate Server (TPCO CITRIX + Remanage)": [
+        "Cannot Connect to VPN",
+        "Cannot Access Network Folder",
+        "Cannot Access Remanage",
+    ],
+    "Courtesy Connection": [
+        "User Account Issue (new/add/remove)",
+        "Urgent Issue (not receiving messages)",
+        "Other Issue (still able to receive messages)",
+    ],
+    "Email Distribution Lists": [
+        "Add/remove user",
+        "Create List",
+    ],
+    "Flex": [],
+    "Document or Tutorial Request": [],
+    "Entrata - Utilities (Edition on Oberlin)": [],
+    "Epitiro": [],
+    "EZ Turn": [
+        "Add/Remove Users",
+        "Other",
+    ],
+    "GeoKey (Smart Locks)": [],
+    "Google Chrome": [
+        "Chrome Not Working",
+        "Reinstall Chrome",
+        "Update Chrome",
+        "Other",
+    ],
+    "Google Sheets/Excel - RO, Electric, Bonus Form, Budget, Master Dashboard, etc.": [],
+    "Grace Hill PerformanceHQ": [
+        "Add/remove user",
+        "Add course(s) to employee(s)",
+        "Cannot login/forgot password",
+        "Other Issue",
+    ],
+    "Grata (Smart Locks)": [],
+    "HelloSign/DocuSign/Adobe Sign": [],
+    "Homebase (Smart Locks)": [],
+    "Hyly - Email Blasts & Drip Campaigns": [],
+    "ILS - Apartments.com, Rent.com, etc": [
+        "Listing Updates",
+        "Integrations",
+        "Something Else",
+    ],
+    "Insurance - DPPSCIC / Stern / ePremium": [
+        "ePremium",
+        "DPPSCIC",
+        "Stern",
+    ],
+    "Leap": [],
+    "Loaner Request/Checkout (laptops, hotspots, etc)": [
+        "Laptop",
+        "Hotspot",
+        "Other",
+    ],
+    "Lock Systems": [],
+    "Maintenance Supply Companies (HD, Lowes, Ferguson, Chadwell)": [
+        "Order Login (issue or new account request)",
+        "Invoice Gateway Login (issue or new account request)",
+        "Request Purchase Card",
+        "Something else",
+    ],
+    "MailChimp/iContact": [],
+    "Microsoft Office": [
+        "Office Not Working",
+        "MS Word Not Working",
+        "Excel Not Working",
+        "Quote for Purchase",
+        "Other",
+    ],
+    "Mood Media - Music": [
+        "Mood Music - Profusion iS Streaming Box",
+        "Mood Music - Mood Mix iPad app",
+        "Mood TV",
+    ],
+    "National Credit Systems (NCS) - Collections": [
+        "Reset Password",
+        "Update Report Recipients",
+        "Need guidance (how to's) or other support",
+    ],
+    "Nationwide Eviction": [],
+    "Network/Internet": [
+        "Internet Service Outage",
+        "Not Connecting to Network",
+        "Other",
+    ],
+    "Notifii Packages": [],
+    "Staples (Office Supplies)": [],
+    "Package Lockers - Luxer One, Parcel Pending, Amazon Hub": [],
+    "Paylease/Zego": [],
+    "PayReady Collections": [
+        "Support",
+    ],
+    "Phone": [
+        "Phone Service Outage",
+        "Phone Not Working",
+        "Other",
+    ],
+    "Property Website": [
+        "Update Specials",
+        "Update office hours",
+        "Websites Issues/Edits",
+        "Virtual Tours - Panoskin, LCP360, Peek",
+    ],
+    "QR Codes": [],
+    "Quickbooks": [],
+    "Quote Request - Hardware/Devices or Software": [],
+    "RentPlus/Homebody Rent Reporting": [
+        "User Login",
+        "Other",
+    ],
+    "Reviews/Reputation/Surveys - Opiniion, J Turner, Yelp, Google Business": [
+        "Update office hours",
+        "Opiniion",
+        "J Turner ORA Scores",
+        "Yelp",
+        "Google Business",
+    ],
+    "SmartRent (Smart Locks)": [],
+    "Social Media - Facebook, Instagram, Google Business": [
+        "Update office hours",
+        "Ads/boosted content",
+        "Password change submission",
+        "Password/access issues",
+        "Tips/Tricks/Training",
+    ],
+    "Stratis (Smart Locks)": [],
+    "Student.com": [
+        "Add/remove user",
+        "Login issue",
+        "Other issue",
+    ],
+    "Tawk.to": [
+        "Add/Remove User",
+        "Other Support",
+    ],
+    "Tour24": [
+        "Add/Remove User",
+        "Turn On/Off Tours",
+        "Script Changes",
+        "Other Support",
+    ],
+    "Travtus": [
+        "Chatbot Issue",
+        "Review Response Issue",
+        "Gateway Issue",
+        "Need Access",
+        "Other",
+    ],
+    "UHomes": [],
+    "Update Office Hours": [],
+    "Utilities - SimpleBills, Conservice, AUM": [],
+    "Yet Another Mail Merge (YAMM)": [
+        "Add/remove user",
+        "Need guidance (how to's) or other support",
+    ],
+    "Zoom Conferencing": [],
+    "Other - do not use": [
+        "HR Use Only",
+        "Non-handled tickets",
+    ],
+}
+
+
+def more_detail_options(system: str) -> list[str]:
+    """Level-2 "Issue" options valid for a given System value.
+
+    Returns [] for systems with no nested options (36 of 77) and for
+    unknown/blank system strings, so callers can render an empty dropdown
+    without a KeyError.
+    """
+    return MORE_DETAIL_BY_SYSTEM.get(system, [])
