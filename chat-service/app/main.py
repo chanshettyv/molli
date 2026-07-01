@@ -32,7 +32,6 @@ from molli_shared.topic_detection import detect_topic_change
 
 from app.cards import dialog
 from app.cards.answer_card import answer_message
-from app.cards.dialog import SERVICE_URL
 from app.cards.reset_card import reset_prompt_actions
 from app.cards.structured_requests import SPECS, build_ticket_fields
 from app.cards.ticket_analysis_adapter import analysis_to_draft_fields
@@ -326,26 +325,7 @@ async def chat_event(request: Request) -> dict[str, Any]:
                 email=_fc(user_email, 0.99, "user-stated"),
                 **fields,
             )
-            if analysis.is_complete:
-                return dialog.open_dialog(draft)
-            questions_text = "\n".join(f"• {q}" for q in analysis.follow_up_questions)
-            build_button = {
-                "text": "Build my ticket",
-                "onClick": {
-                    "action": {
-                        "function": SERVICE_URL,
-                        "parameters": [
-                            {"key": "actionName", "value": "buildSmartTicket"},
-                            {"key": "userEmail", "value": user_email},
-                            {"key": "userQuestion", "value": user_question},
-                        ],
-                    }
-                },
-            }
-            return answer_message(
-                "To create your ticket I need a bit more information:\n\n" + questions_text,
-                actions=[build_button],
-            )
+            return dialog.open_dialog(draft)
 
         if action == "buildSmartTicket":
             params = common.get("parameters", {})

@@ -32,6 +32,7 @@ def create_ticket_button(user_question: str, user_email: str) -> dict[str, Any]:
         "onClick": {
             "action": {
                 "function": SERVICE_URL,
+                "interaction": "OPEN_DIALOG",
                 "parameters": [
                     {"key": "actionName", "value": "analyzeForTicket"},
                     {"key": "userEmail", "value": user_email},
