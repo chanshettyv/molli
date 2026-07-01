@@ -63,7 +63,7 @@ def make_draft(
 
     # Defaults — a realistic "can't log in" IT escalation Molli couldn't resolve.
     defaults: dict[str, FieldConfidence | None] = {
-        "email": _fc("vedant.chanshetty@preiss.com", 0.99, "user-stated"),
+        "email": _fc("lindsey.bowman@preiss.com", 0.99, "user-stated"),
         "subject": _fc("Can't log into Google account", 0.85, "inferred"),
         "description": _fc(
             "User reports being locked out of their Google account after "
@@ -81,7 +81,7 @@ def make_draft(
         "computer_name_if_it_issue": _fc("LAPTOP-LB-014", 0.65, "lookup"),
     }
     if include_more_detail:
-        defaults["original_more_detail"] = _fc("Password Issues", 1.0, "default")
+        defaults["original_more_detail"] = _fc("Other", 1.0, "default")
 
     # Apply caller overrides (including explicit None to clear a field).
     for name, fc in field_overrides.items():

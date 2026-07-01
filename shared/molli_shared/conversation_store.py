@@ -107,8 +107,11 @@ class ConversationStore:
                 d = snap.to_dict() or {}
                 turns = d.get("turns", [])
             turns.append(
-                {"role": stored.role, "text": stored.text,
-                 "scan_skipped": stored.scan_skipped}
+                {
+                    "role": stored.role,
+                    "text": stored.text,
+                    "scan_skipped": stored.scan_skipped,
+                }
             )
             # Trim oldest beyond the hard cap.
             if len(turns) > _MAX_STORED_TURNS:
@@ -150,12 +153,20 @@ class ConversationStore:
             if used + cost > char_budget and kept:
                 break
             kept.append(
-                Turn(role=t.get("role", ""), text=text,
-                     scan_skipped=t.get("scan_skipped", False))
+                Turn(
+                    role=t.get("role", ""),
+                    text=text,
+                    scan_skipped=t.get("scan_skipped", False),
+                )
             )
             used += cost
         kept.reverse()  # back to chronological
         return kept
+
+    def clear(self, space_id: str) -> None:
+        """Delete the session document, wiping all stored turns."""
+        self._col.document(_sanitize(space_id)).delete()
+        log.info("conversation_cleared", space_id=space_id)
 
     @staticmethod
     def as_transcript(turns: list[Turn]) -> str:

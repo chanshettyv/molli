@@ -84,7 +84,9 @@ class TestFormatDescription:
         )
         body = format_description(ENTRATA_ACCESS, resolved)
         assert "Access for: v@p.com" in body  # defaulted, not omitted
-        assert "—" not in body
+        # No field value should render as a bare em-dash placeholder.
+        # The footer "— Submitted via Molli" is intentional and excluded here.
+        assert ": —" not in body
 
 
 class TestBuildTicketFields:

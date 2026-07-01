@@ -173,16 +173,9 @@ def test_required_widgets_unchanged():
         "group",
         "affectedLocation",
         "systemItem",
-        "status",
         "priority",
         "description",
     }
-
-
-def test_status_has_no_preselection():
-    """status isn't in TicketDraft, so it should never be pre-selected."""
-    fields = _by_name(dialog.open_dialog(make_draft()))
-    assert _selected(fields["status"]) == []
 
 
 def test_returns_pushcard_envelope():

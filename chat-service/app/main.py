@@ -7,6 +7,7 @@ Real logic lands in Phase 1 and 2.
 
 from __future__ import annotations
 
+import asyncio
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from typing import Any
@@ -21,19 +22,24 @@ from molli_shared.clients.ticketing import (
     TicketingValidationError,
 )
 from molli_shared.config import get_settings
+from molli_shared.conversation_store import ConversationStore
 from molli_shared.guardrails.chain import run_chain, scan_gemini_output
+from molli_shared.intent import classify_intent
+from molli_shared.query_rewrite import rewrite_followup
 from molli_shared.schemas.factories import _fc, make_draft, make_empty_draft, make_partial_draft
+from molli_shared.ticket_analysis import analyze_for_ticket
+from molli_shared.topic_detection import detect_topic_change
 
 from app.cards import dialog
 from app.cards.answer_card import answer_message
+from app.cards.dialog import SERVICE_URL
+from app.cards.reset_card import reset_prompt_actions
 from app.cards.structured_requests import SPECS, build_ticket_fields
+from app.cards.ticket_analysis_adapter import analysis_to_draft_fields
 from app.cards.ticket_mapper import build_ticket_payload
-from app.cards.ticket_prefill import build_prefill_draft, create_ticket_button
+from app.cards.ticket_prefill import create_ticket_button
 from app.gemini_client import FALLBACK_MESSAGE, ask_gemini
 from app.tools.rag_answer import answer_with_citations
-from molli_shared.conversation_store import ConversationStore
-from molli_shared.intent import classify_intent
-from molli_shared.query_rewrite import rewrite_followup
 
 
 def _classify(event: dict[str, Any]) -> tuple[str, dict[str, Any]]:
@@ -191,9 +197,14 @@ async def chat_event(request: Request) -> dict[str, Any]:
             # thing. No prior turns -> rewrite is a no-op (no extra call).
             convo = request.app.state.conversations
             _history = ConversationStore.as_transcript(convo.get_recent(space_id))
+            _topic_task = asyncio.create_task(detect_topic_change(user_text, _history))
             gemini_query = await rewrite_followup(gemini_query, _history)
             intent_result = await classify_intent(gemini_query)
-            log.info("intent_classified", intent=intent_result.intent, confidence=intent_result.confidence)
+            log.info(
+                "intent_classified",
+                intent=intent_result.intent,
+                confidence=intent_result.confidence,
+            )
             rag = answer_with_citations(gemini_query, intent=intent_result.intent)
             if not rag.no_context:
                 reply_text = rag.formatted()
@@ -215,6 +226,7 @@ async def chat_event(request: Request) -> dict[str, Any]:
                     )
                     reply_text = disclaimer + general
             reply_text, _ = await scan_gemini_output(reply_text, user_email, space_id, session_id)
+            topic_changed = await _topic_task
             # Persist the turn pair (DLP-scrubbed inside the store). Store the
             # RAW user_text -- memory reflects what was actually said; the
             # rewrite was only for retrieval.
@@ -224,15 +236,20 @@ async def chat_event(request: Request) -> dict[str, Any]:
             except Exception as exc:  # noqa: BLE001 -- memory must never break the reply
                 log.warning("conversation_append_failed", error=str(exc))
         else:
+            topic_changed = False
             reply_text = (
                 f"Hi {user_name or 'there'}! I'm Molli. I'm still being built — check back soon."
             )
 
         if chain_result.append_to_response:
             reply_text = f"{reply_text}\n\n{chain_result.append_to_response}"
-
-        actions = [create_ticket_button(user_text, user_email)] if show_ticket_button else None
-        return answer_message(reply_text, actions=actions)
+        ticket_seed = chain_result.message_to_gemini or user_text
+        actions: list[dict] = []
+        if show_ticket_button:
+            actions.append(create_ticket_button(ticket_seed, user_email))
+        if topic_changed:
+            actions.extend(reset_prompt_actions())
+        return answer_message(reply_text, actions=actions or None)
 
     if event_type == "ADDED_TO_SPACE":
         return _chat_reply(
@@ -295,13 +312,54 @@ async def chat_event(request: Request) -> dict[str, Any]:
                     "Couldn't reach the ticketing system right now. Please try again shortly."
                 )
 
-        if action == "openPrefillDialog":
+        if action == "analyzeForTicket":
             params = common.get("parameters", {})
-            draft = build_prefill_draft(
-                user_email=params.get("userEmail", ""),
-                subject=params.get("subject", ""),
-                user_question=params.get("userQuestion", ""),
-                conversation_id=event.get("space", {}).get("name", "unknown"),
+            user_email = params.get("userEmail", "") or _sender_email_from_event(event)
+            user_question = params.get("userQuestion", "")
+            space_id = event.get("space", {}).get("name", "unknown")
+            history = request.app.state.conversations.get_recent(space_id)
+            analysis = await analyze_for_ticket(history, user_question)
+            settings = get_settings()
+            fields = analysis_to_draft_fields(analysis, settings.freshservice_hr_group_id)
+            draft = make_draft(
+                conversation_id=space_id,
+                email=_fc(user_email, 0.99, "user-stated"),
+                **fields,
+            )
+            if analysis.is_complete:
+                return dialog.open_dialog(draft)
+            questions_text = "\n".join(f"• {q}" for q in analysis.follow_up_questions)
+            build_button = {
+                "text": "Build my ticket",
+                "onClick": {
+                    "action": {
+                        "function": SERVICE_URL,
+                        "parameters": [
+                            {"key": "actionName", "value": "buildSmartTicket"},
+                            {"key": "userEmail", "value": user_email},
+                            {"key": "userQuestion", "value": user_question},
+                        ],
+                    }
+                },
+            }
+            return answer_message(
+                "To create your ticket I need a bit more information:\n\n" + questions_text,
+                actions=[build_button],
+            )
+
+        if action == "buildSmartTicket":
+            params = common.get("parameters", {})
+            user_email = params.get("userEmail", "") or _sender_email_from_event(event)
+            user_question = params.get("userQuestion", "")
+            space_id = event.get("space", {}).get("name", "unknown")
+            history = request.app.state.conversations.get_recent(space_id)
+            analysis = await analyze_for_ticket(history, user_question)
+            settings = get_settings()
+            fields = analysis_to_draft_fields(analysis, settings.freshservice_hr_group_id)
+            draft = make_draft(
+                conversation_id=space_id,
+                email=_fc(user_email, 0.99, "user-stated"),
+                **fields,
             )
             return dialog.open_dialog(draft)
 
@@ -323,6 +381,18 @@ async def chat_event(request: Request) -> dict[str, Any]:
             )
 
             return dialog.open_dialog(draft)
+
+        if action == "resetHistory":
+            space_id = event.get("space", {}).get("name", "unknown")
+            try:
+                request.app.state.conversations.clear(space_id)
+                log.info("conversation_reset", space_id=space_id)
+            except Exception as exc:  # noqa: BLE001
+                log.warning("conversation_reset_failed", error=str(exc))
+            return _chat_reply("Done — conversation history cleared. What would you like to know?")
+
+        if action == "keepHistory":
+            return _chat_reply("Got it — keeping your conversation history.")
 
         log.info("unhandled_card_click", action=action)
         return {}

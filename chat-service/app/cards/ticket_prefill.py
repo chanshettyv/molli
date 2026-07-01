@@ -18,16 +18,7 @@ from molli_shared.schemas.ticket import TicketDraft
 
 from app.cards.dialog import SERVICE_URL
 
-_MAX_SUBJECT_LEN = 100
 _MAX_QUESTION_PARAM = 800  # trimmed before embedding in action parameters
-
-
-def _derive_subject(question: str) -> str:
-    """Trim a user question into a short ticket subject line."""
-    q = question.strip().rstrip("?").strip()
-    if len(q) <= _MAX_SUBJECT_LEN:
-        return q
-    return q[:_MAX_SUBJECT_LEN].rsplit(" ", 1)[0] + "..."
 
 
 def create_ticket_button(user_question: str, user_email: str) -> dict[str, Any]:
@@ -36,17 +27,14 @@ def create_ticket_button(user_question: str, user_email: str) -> dict[str, Any]:
     Passes subject, email, and the trimmed question as action parameters so
     the openPrefillDialog handler can build the draft without extra I/O.
     """
-    subject = _derive_subject(user_question)
     return {
         "text": "Create Ticket",
         "onClick": {
             "action": {
                 "function": SERVICE_URL,
-                "interaction": "OPEN_DIALOG",
                 "parameters": [
-                    {"key": "actionName", "value": "openPrefillDialog"},
+                    {"key": "actionName", "value": "analyzeForTicket"},
                     {"key": "userEmail", "value": user_email},
-                    {"key": "subject", "value": subject},
                     {"key": "userQuestion", "value": user_question[:_MAX_QUESTION_PARAM]},
                 ],
             }
