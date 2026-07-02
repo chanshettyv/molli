@@ -106,21 +106,28 @@ def md_to_chat_html(text: str) -> str:
     # 10. Horizontal rules --- / *** -> a thin separator line.
     out = re.sub(r"(?m)^\s*([-*_])\1{2,}\s*$", "──────────", out)
 
-    # 11. Collapse 3+ newlines, then turn newlines into <br> -- except
-    #     between two consecutive bullet lines, where <br> renders with
-    #     visibly more vertical gap than a plain list should have. A literal
-    #     "\n" between bullets keeps the list tight; every other line break
-    #     (including into/out of a bullet list) still gets the explicit,
-    #     JSON-round-trip-safe <br>.
+    # 11. Normalize spacing, then join every line with <br>.
+    #     Chat's textParagraph renders a bare "\n" and a single "<br>"
+    #     IDENTICALLY (one line break); "<br><br>" is a double gap. The old
+    #     "keep \n between bullets to tighten the list" trick was therefore a
+    #     no-op, and the real cause of ragged lists is a blank line surviving
+    #     next to a list item -> it becomes a "<br><br>" double gap. Gemini
+    #     emits lists inconsistently (some "loose" with blank lines between
+    #     items, some "tight"), so we drop any blank line that immediately
+    #     precedes a bullet. That makes loose and tight lists render the same
+    #     and attaches each list to its heading. Blank lines elsewhere
+    #     (between paragraphs / sections) are preserved.
     out = re.sub(r"\n{3,}", "\n\n", out).strip()
 
     def _is_bullet_line(line: str) -> bool:
         return re.match(r"^(?:&nbsp;)*• ", line) is not None
 
     lines = out.split("\n")
-    rendered = [lines[0]]
-    for prev, cur in zip(lines, lines[1:], strict=False):
-        sep = "\n" if _is_bullet_line(prev) and _is_bullet_line(cur) else "<br>"
-        rendered.append(sep)
-        rendered.append(cur)
-    return "".join(rendered)
+    kept: list[str] = []
+    for i, line in enumerate(lines):
+        if line == "":
+            nxt = next((ln for ln in lines[i + 1 :] if ln != ""), None)
+            if nxt is not None and _is_bullet_line(nxt):
+                continue  # blank line right before a list item -> drop it
+        kept.append(line)
+    return "<br>".join(kept)
