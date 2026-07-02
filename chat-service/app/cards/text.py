@@ -106,9 +106,21 @@ def md_to_chat_html(text: str) -> str:
     # 10. Horizontal rules --- / *** -> a thin separator line.
     out = re.sub(r"(?m)^\s*([-*_])\1{2,}\s*$", "──────────", out)
 
-    # 11. Collapse 3+ newlines, then turn newlines into <br>. Chat renders
-    #     literal \n in textParagraph, but <br> is explicit and survives
-    #     JSON round-trips predictably.
+    # 11. Collapse 3+ newlines, then turn newlines into <br> -- except
+    #     between two consecutive bullet lines, where <br> renders with
+    #     visibly more vertical gap than a plain list should have. A literal
+    #     "\n" between bullets keeps the list tight; every other line break
+    #     (including into/out of a bullet list) still gets the explicit,
+    #     JSON-round-trip-safe <br>.
     out = re.sub(r"\n{3,}", "\n\n", out).strip()
 
-    return out.replace("\n", "<br>")
+    def _is_bullet_line(line: str) -> bool:
+        return re.match(r"^(?:&nbsp;)*• ", line) is not None
+
+    lines = out.split("\n")
+    rendered = [lines[0]]
+    for prev, cur in zip(lines, lines[1:], strict=False):
+        sep = "\n" if _is_bullet_line(prev) and _is_bullet_line(cur) else "<br>"
+        rendered.append(sep)
+        rendered.append(cur)
+    return "".join(rendered)

@@ -26,3 +26,20 @@ def test_sources_footer_renders_as_bulleted_links() -> None:
     assert "•" in out
     # No leftover bracketed numbering anywhere.
     assert "[1]" not in out
+
+
+def test_consecutive_bullets_join_with_plain_newline_not_br() -> None:
+    # <br> between list bullets renders with a visibly larger gap in Chat
+    # than a plain list should have -- consecutive bullets must use a raw
+    # "\n" instead, while every other line break still gets an explicit <br>.
+    out = md_to_chat_html(
+        "Sources:\n- [Source A](https://x/a)\n- [Source B](https://x/b)\n- [Source C](https://x/c)"
+    )
+    assert "Sources:<br>• " in out
+    assert '<a href="https://x/a">Source A</a>\n• <a href="https://x/b">Source B</a>' in out
+    assert '<a href="https://x/b">Source B</a>\n• <a href="https://x/c">Source C</a>' in out
+
+
+def test_paragraph_then_bullets_keeps_br_into_list() -> None:
+    out = md_to_chat_html("Intro paragraph.\n\nSources:\n- [Source A](https://x/a)")
+    assert "Intro paragraph.<br><br>Sources:<br>• " in out
