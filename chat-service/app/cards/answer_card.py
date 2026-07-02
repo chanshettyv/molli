@@ -29,27 +29,24 @@ def answer_card(
     *,
     citations: list[dict[str, str]] | None = None,
     actions: list[dict[str, Any]] | None = None,
-    citation_urls: dict[int, str] | None = None,
 ) -> dict[str, Any]:
     """Build a single ``cardsV2`` entry for a Molli reply.
 
     Args:
         markdown_text: Gemini's answer, in Markdown. Converted to the Chat
-            HTML subset before going into the card.
+            HTML subset before going into the card. When the answer has
+            sources, ``markdown_text`` already includes a trailing "Sources:"
+            list of Markdown links (see ``RagAnswer.formatted()``), which
+            renders as clickable links with no numbering.
         citations: Reserved. When provided later, each item like
             ``{"title": ..., "url": ...}`` becomes a source link section.
         actions: Reserved. When provided later, each item describes a button
             (e.g. the "Create ticket" action).
-        citation_urls: Map of citation number -> D360 URL, used to linkify
-            inline ``[n]`` markers in ``markdown_text``. Distinct from
-            ``citations`` above, which renders a separate footer widget.
 
     Returns:
         One element suitable for the ``cardsV2`` list of a Chat message.
     """
-    widgets: list[dict[str, Any]] = [
-        {"textParagraph": {"text": md_to_chat_html(markdown_text, citation_urls=citation_urls)}}
-    ]
+    widgets: list[dict[str, Any]] = [{"textParagraph": {"text": md_to_chat_html(markdown_text)}}]
 
     # --- Reserved for later; content-driven so the path stays single. ---
     if citations:
@@ -87,7 +84,6 @@ def answer_message(
     *,
     citations: list[dict[str, str]] | None = None,
     actions: list[dict[str, Any]] | None = None,
-    citation_urls: dict[int, str] | None = None,
 ) -> dict[str, Any]:
     """Wrap :func:`answer_card` in a full message response body.
 
@@ -109,7 +105,6 @@ def answer_message(
                                 markdown_text,
                                 citations=citations,
                                 actions=actions,
-                                citation_urls=citation_urls,
                             )
                         ]
                     }

@@ -20,7 +20,7 @@ from molli_shared.chunk_store import StoredChunk
 
 def test_formatted_appends_sources() -> None:
     ans = RagAnswer(
-        text="Reset your password from the login page [1].",
+        text="Reset your password from the login page.",
         citations=[Citation(number=1, title="Password Reset", url="https://x/y")],
         chunks_retrieved=1,
     )
@@ -28,7 +28,9 @@ def test_formatted_appends_sources() -> None:
     assert "Reset your password" in out
     assert "Sources:" in out
     assert "https://x/y" in out
-    assert "[1] [Password Reset](https://x/y)" in out
+    assert "- [Password Reset](https://x/y)" in out
+    # No numbering anywhere in the footer.
+    assert "[1]" not in out
 
 
 def test_formatted_no_citations_is_plain() -> None:

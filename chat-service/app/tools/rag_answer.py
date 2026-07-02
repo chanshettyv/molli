@@ -7,8 +7,11 @@ Flow:
     query -> embed (RETRIEVAL_QUERY) -> Vector Search top-k neighbour ids
           -> ChunkStore.get_many(ids) -> actual chunk text
           -> build grounded prompt with numbered sources (text + link)
-          -> Gemini generates an answer citing sources inline as [1], [2]
-          -> assemble a deduplicated citation list (title + D360 URL)
+          -> Gemini generates an answer with NO inline citation markers --
+             the numbering in the prompt is only to help Gemini tell sources
+             apart, not something it should surface to the user
+          -> assemble a deduplicated citation list (title + D360 URL),
+             appended as a plain hyperlinked "Sources:" list
 
 No-context handling: Vector Search always returns top-k neighbours even for an
 off-topic query, so an empty result set is NOT a reliable "not covered" signal.
@@ -51,8 +54,10 @@ RAG_SYSTEM_INSTRUCTION = (
     "prompt. Rules:\n"
     "1. Base your answer only on the provided source text. Do not use outside "
     "knowledge about Preiss's internal systems, policies, or people.\n"
-    "2. Cite sources inline with bracketed numbers like [1] or [2], right "
-    "after the claim they support.\n"
+    "2. Do not cite sources inline and do not add any bracketed numbers, "
+    "footnotes, or markers like [1] to your answer -- a linked source list is "
+    "appended automatically after your answer, so just write the answer as "
+    "plain, natural text.\n"
     "3. If the provided sources do not actually answer the question, respond "
     "with EXACTLY the single token INSUFFICIENT_CONTEXT and nothing else -- no "
     "explanation, no apology, no citations. Do not fabricate.\n"
@@ -85,12 +90,17 @@ class RagAnswer:
     no_context: bool = False
 
     def formatted(self) -> str:
-        """Answer text with a Sources footer of working D360 links."""
+        """Answer text with a Sources footer of working D360 links.
+
+        No numbering anywhere -- the answer body has no inline markers (the
+        model is instructed not to add them) and each source is just its
+        hyperlinked title.
+        """
         if not self.citations:
             return self.text
         lines = [self.text, "", "Sources:"]
         for c in self.citations:
-            lines.append(f"[{c.number}] [{c.title}]({c.url})")
+            lines.append(f"- [{c.title}]({c.url})")
         return "\n".join(lines)
 
 
@@ -154,8 +164,10 @@ def _build_prompt(
         f"Employee question: {query}\n\n"
         f"Numbered sources from Preiss Central (Document360):\n\n"
         f"{sources_text}\n\n"
-        f"Answer using only these sources, citing inline like [1]. If these "
-        f"sources do not actually answer the question, reply with exactly "
+        f"Answer using only these sources. The numbering above is only to "
+        f"help you tell sources apart -- do not mention source numbers or "
+        f"add bracketed markers like [1] in your answer. If these sources do "
+        f"not actually answer the question, reply with exactly "
         f"{_INSUFFICIENT} and nothing else."
     )
     return prompt, citations
@@ -227,10 +239,11 @@ def answer_with_citations(
         log.info("rag_insufficient_context", query=query)
         return RagAnswer(text=NO_CONTEXT_MESSAGE, no_context=True, chunks_retrieved=len(neighbours))
 
-    cited = [c for c in citations if f"[{c.number}]" in text]
-    final_citations = cited or citations
+    # The model no longer emits inline [n] markers, so there's nothing in the
+    # generated text to match citations against -- surface every retrieved,
+    # deduplicated source.
     return RagAnswer(
         text=text,
-        citations=final_citations,
+        citations=citations,
         chunks_retrieved=len(neighbours),
     )
