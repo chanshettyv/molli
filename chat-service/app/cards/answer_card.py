@@ -14,6 +14,7 @@ which is not handled here. Add that when the ticket button lands.
 
 from __future__ import annotations
 
+from logging import log
 from typing import Any
 
 from .text import md_to_chat_html  # adjust import to match your package layout
@@ -46,7 +47,9 @@ def answer_card(
     Returns:
         One element suitable for the ``cardsV2`` list of a Chat message.
     """
-    widgets: list[dict[str, Any]] = [{"textParagraph": {"text": md_to_chat_html(markdown_text)}}]
+    html = md_to_chat_html(markdown_text)
+    log.info("card_text_html", html=html)
+    widgets: list[dict[str, Any]] = [{"textParagraph": {"text": html}}]
 
     # --- Reserved for later; content-driven so the path stays single. ---
     if citations:
