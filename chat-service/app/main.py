@@ -249,6 +249,7 @@ async def chat_event(request: Request) -> dict[str, Any]:
             actions.append(create_ticket_button(ticket_seed, user_email))
         if topic_changed:
             actions.extend(reset_prompt_actions())
+        log.info("outgoing_reply", reply_text=reply_text)
         return answer_message(reply_text, actions=actions or None)
 
     if event_type == "ADDED_TO_SPACE":
