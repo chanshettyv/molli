@@ -50,7 +50,6 @@ def answer_card(
     html = md_to_chat_html(markdown_text)
     log = structlog.get_logger()
     log.info("card_text_html", html=html)
-    html = "one\ntwo<br>three<br><br>four"
     widgets: list[dict[str, Any]] = [{"textParagraph": {"text": html}}]
 
     # --- Reserved for later; content-driven so the path stays single. ---
