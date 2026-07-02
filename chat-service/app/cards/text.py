@@ -35,8 +35,15 @@ def _escape_keep_tags(text: str) -> str:
     return html.escape(text, quote=False)
 
 
-def md_to_chat_html(text: str) -> str:
+def md_to_chat_html(text: str, citation_urls: dict[int, str] | None = None) -> str:
     """Convert a Markdown string to Chat-card-renderable HTML.
+
+    Args:
+        citation_urls: Optional map of citation number -> D360 URL. When
+            given, standalone inline markers like ``[1]`` are turned into
+            links to the matching URL; numbers not in the map are left as
+            plain text. Grouped refs like ``[1, 2]`` are NOT matched (known
+            limitation -- the marker regex only accepts a single integer).
 
     The output is safe to drop into a ``textParagraph`` ``text`` field.
     """
@@ -75,6 +82,23 @@ def md_to_chat_html(text: str) -> str:
         return f'<a href="{url}">{label}</a>'
 
     out = re.sub(r"\[([^\]]+)\]\(([^)]+)\)", _link, out)
+
+    # 4b. Inline citation markers [n] -> <a href="...">[n]</a> when n is a
+    #     known citation number. Numbers not in the map stay literal text.
+    #     Grouped refs like "[1, 2]" don't match \d+ alone and are left as-is
+    #     (known limitation, not handled here).
+    if citation_urls:
+
+        def _citation_marker(m: re.Match[str]) -> str:
+            n = int(m.group(1))
+            url = citation_urls.get(n)
+            if url is None:
+                return m.group(0)
+            if not re.match(r"^(https?://|mailto:)", url, flags=re.IGNORECASE):
+                return m.group(0)
+            return f'<a href="{url}">[{n}]</a>'
+
+        out = re.sub(r"\[(\d+)\]", _citation_marker, out)
 
     # 5. Bold **x** or __x__ -> <b>x</b>   (before single-char italic).
     out = re.sub(r"\*\*([^*]+)\*\*", r"<b>\1</b>", out)

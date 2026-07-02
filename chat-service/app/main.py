@@ -190,6 +190,7 @@ async def chat_event(request: Request) -> dict[str, Any]:
 
         settings = get_settings()
         show_ticket_button = False
+        rag = None
         if settings.use_gemini:
             gemini_query = chain_result.message_to_gemini or user_text
             # Multi-turn: pull recent (DLP-scrubbed) context and rewrite a
@@ -249,7 +250,12 @@ async def chat_event(request: Request) -> dict[str, Any]:
             actions.append(create_ticket_button(ticket_seed, user_email))
         if topic_changed:
             actions.extend(reset_prompt_actions())
-        return answer_message(reply_text, actions=actions or None)
+        citation_urls = {c.number: c.url for c in rag.citations} if rag else {}
+        return answer_message(
+            reply_text,
+            actions=actions or None,
+            citation_urls=citation_urls or None,
+        )
 
     if event_type == "ADDED_TO_SPACE":
         return _chat_reply(

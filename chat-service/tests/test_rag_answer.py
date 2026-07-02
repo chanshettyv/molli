@@ -28,7 +28,7 @@ def test_formatted_appends_sources() -> None:
     assert "Reset your password" in out
     assert "Sources:" in out
     assert "https://x/y" in out
-    assert "[1] Password Reset" in out
+    assert "[1] [Password Reset](https://x/y)" in out
 
 
 def test_formatted_no_citations_is_plain() -> None:

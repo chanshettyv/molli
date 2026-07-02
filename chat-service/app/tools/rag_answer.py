@@ -90,7 +90,7 @@ class RagAnswer:
             return self.text
         lines = [self.text, "", "Sources:"]
         for c in self.citations:
-            lines.append(f"[{c.number}] {c.title} -- {c.url}")
+            lines.append(f"[{c.number}] [{c.title}]({c.url})")
         return "\n".join(lines)
 
 
@@ -161,7 +161,9 @@ def _build_prompt(
     return prompt, citations
 
 
-def answer_with_citations(query: str, top_k: int = _DEFAULT_TOP_K, intent: str | None = None) -> RagAnswer:
+def answer_with_citations(
+    query: str, top_k: int = _DEFAULT_TOP_K, intent: str | None = None
+) -> RagAnswer:
     """Retrieve, ground on chunk text, generate. Never raises.
 
     Sets no_context=True when retrieval is empty OR when the model judges the
