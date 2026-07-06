@@ -1,12 +1,15 @@
-"""FHA / FCRA semantic fallback classifier.
+"""FHA semantic fallback classifier.
 
-Runs as a guardrail AFTER the regex-based FairHousingGuardrail and
-FCRAGuardrail.  Only reached when a message passes both regex checks but
-may still semantically touch FHA/FCRA territory — paraphrased or indirect
-phrasing the patterns cannot match.
+Runs as a guardrail AFTER the regex-based FairHousingGuardrail. Only reached
+when a message passes the regex check but may still semantically touch FHA
+territory — paraphrased or indirect phrasing the patterns cannot match.
+
+FCRA (screening) questions are intentionally allowed through to the normal
+RAG pipeline. If Document360 has screening policy docs, Molli will answer
+from them; if not, it returns the standard no-context response.
 
 Calls Gemini at temperature-0 with a compact classification prompt and
-parses a single-token response: FHA | FCRA | NONE.
+parses a single-token response: FHA | NONE.
 
 Fail-open:  any error or timeout returns ALLOW so normal Molli traffic is
             never disrupted by a classifier outage.
@@ -25,7 +28,6 @@ from molli_shared.config import get_settings
 
 from .base import Action, GuardrailVerdict
 from .fair_housing import CANNED_RESPONSE as _FHA_CANNED
-from .fcra import CANNED_RESPONSE as _FCRA_CANNED
 
 log = structlog.get_logger()
 
@@ -41,17 +43,12 @@ _SYSTEM_PROMPT = (
     "orientation, familial status, disability, protected classes, or "
     "housing/tenant selection decisions.\n"
     "\n"
-    "Reply FCRA if the message touches Fair Credit Reporting Act topics: "
-    "background checks, criminal records, credit reports, FICO scores, "
-    "eviction history, tenant screening reports, adverse action notices, "
-    "consumer reports, or bankruptcy.\n"
-    "\n"
     "Reply NONE for anything else."
 )
 
 _USER_PROMPT = "Message: {message}"
 
-_VALID_TOPICS = {"FHA", "FCRA", "NONE"}
+_VALID_TOPICS = {"FHA", "NONE"}
 
 
 def _call_gemini(project_id: str, region: str, model_name: str, text: str) -> str:
@@ -73,7 +70,7 @@ def _call_gemini(project_id: str, region: str, model_name: str, text: str) -> st
 
 
 async def _classify(text: str) -> str:
-    """Return 'FHA', 'FCRA', or 'NONE'.  Fails open on any error or timeout."""
+    """Return 'FHA' or 'NONE'.  Fails open on any error or timeout."""
     try:
         settings = get_settings()
     except Exception:
@@ -94,17 +91,17 @@ async def _classify(text: str) -> str:
             timeout=_CLASSIFY_TIMEOUT,
         )
     except asyncio.TimeoutError:
-        log.warning("fha_fcra_classifier_timeout", text_len=len(text))
+        log.warning("fha_classifier_timeout", text_len=len(text))
         return "NONE"
     except Exception as exc:  # noqa: BLE001
-        log.error("fha_fcra_classifier_error", error=str(exc))
+        log.error("fha_classifier_error", error=str(exc))
         return "NONE"
 
     return result if result in _VALID_TOPICS else "NONE"
 
 
 class FHAFCRAClassifier:
-    name = "fha_fcra_llm"
+    name = "fha_llm"
 
     async def check(self, message: str, user_email: str) -> GuardrailVerdict:
         topic = await _classify(message)
@@ -116,15 +113,8 @@ class FHAFCRAClassifier:
                 reason="LLM classifier: FHA topic detected (regex miss)",
                 canned_response=_FHA_CANNED,
             )
-        if topic == "FCRA":
-            return GuardrailVerdict(
-                action=Action.BLOCK,
-                category="FCRA",
-                reason="LLM classifier: FCRA topic detected (regex miss)",
-                canned_response=_FCRA_CANNED,
-            )
         return GuardrailVerdict(
             action=Action.ALLOW,
-            category="FHA_FCRA_LLM",
-            reason="LLM classifier: no FHA/FCRA topic detected",
+            category="FHA_LLM",
+            reason="LLM classifier: no FHA topic detected",
         )
