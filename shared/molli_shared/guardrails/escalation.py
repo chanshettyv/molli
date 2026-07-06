@@ -23,7 +23,9 @@ from .base import Action, GuardrailVerdict
 
 _TIER3_PATTERNS: list[str] = [
     r"\b(talk|speak|connect) (to|with) (a )?(real )?(person|human|someone)\b",
-    r"\bget a human\b",
+    r"\bget (me )?(a )?(real )?(human|person|agent)\b",
+    r"\b(want|'?d like) (a |to (talk|speak) (to|with) )?(real )?(person|human|someone|agent)\b",
+    r"\btransfer (me|this).{0,30}(person|human|agent|hr|it|manager|team)\b",
     r"\bescalate (this|my (issue|question|request))\b",
     r"\bcontact (hr|it|a manager|my manager|someone) directly\b",
     r"\bwho (do i|can i) (actually )?(call|contact|talk to|reach)\b",
@@ -35,7 +37,7 @@ _TIER3_PATTERNS: list[str] = [
     r"\b(molli )?(didn'?t|hasn'?t) (help(ed)?|answer(ed)?|fix(ed)?)\b",
     r"\bneed someone to actually fix\b",
     r"\burgent(ly)?.{0,30}(who|call|contact|person)\b",
-    r"\bfigure it out myself\b",  # graceful close — but still flag
+    r"\bfigure it out myself\b",
 ]
 
 # Tier 2 — low confidence follow-up (called programmatically, not via pattern)

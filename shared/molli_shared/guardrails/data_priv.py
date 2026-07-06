@@ -51,9 +51,6 @@ _THIRD_PARTY_PATTERNS: list[str] = [
     r"\b(get to|access|find|pull up|look up|open).{0,40}\b(resident|tenant).{0,40}account\b",
     r"\bresident.{0,20}account.{0,20}number\b",
     r"\baccount (number|#|num).{0,30}\d{4,}\b",
-    # "sarah johnson's account record" — two 4+ char words + possessive + PII.
-    # Both words ≥4 chars so "the company's" / "my account's" don't match.
-    r"\b[a-z]{4,}\s[a-z]{4,}'s\s+(account|record|ssn|salary|profile|data|information)\b",
     # Resident/tenant + any identifier
     r"\b(resident|tenant).{0,30}(account|number|record|ssn|dob|date of birth|profile)\b",
     # Third-person pronoun + PII

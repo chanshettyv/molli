@@ -13,8 +13,9 @@ from contextlib import asynccontextmanager
 from typing import Any
 
 import structlog
-from fastapi import FastAPI, Request
+from fastapi import BackgroundTasks, FastAPI, Request
 from molli_shared.clients.freshservice import FreshserviceClient
+from molli_shared.clients.gmail import GmailClient
 from molli_shared.clients.ticketing import (
     TicketingAuthError,
     TicketingError,
@@ -23,6 +24,7 @@ from molli_shared.clients.ticketing import (
 )
 from molli_shared.config import get_settings
 from molli_shared.conversation_store import ConversationStore
+from molli_shared.guardrails.base import Action
 from molli_shared.guardrails.chain import run_chain, scan_gemini_output
 from molli_shared.intent import classify_intent
 from molli_shared.query_rewrite import rewrite_followup
@@ -38,7 +40,7 @@ from app.cards.ticket_analysis_adapter import analysis_to_draft_fields
 from app.cards.ticket_mapper import build_ticket_payload
 from app.cards.ticket_prefill import create_ticket_button
 from app.gemini_client import FALLBACK_MESSAGE, ask_gemini
-from app.tools.rag_answer import answer_with_citations
+from app.tools.rag_answer import answer_with_citations, search_docs
 
 
 def _classify(event: dict[str, Any]) -> tuple[str, dict[str, Any]]:
