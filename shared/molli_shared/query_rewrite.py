@@ -28,7 +28,7 @@ from molli_shared.config import get_settings
 
 log = structlog.get_logger()
 
-_REWRITE_TIMEOUT = 4.0
+_REWRITE_TIMEOUT = 2.0
 
 _SYSTEM_PROMPT = (
     "You rewrite a follow-up message into a standalone search query for a "

@@ -24,7 +24,7 @@ from molli_shared.config import get_settings
 
 log = structlog.get_logger()
 
-_DETECTION_TIMEOUT = 3.0
+_DETECTION_TIMEOUT = 1.5
 
 _SYSTEM_PROMPT = (
     "You detect whether a user's new message is about a completely different "
