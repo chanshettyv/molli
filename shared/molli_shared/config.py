@@ -10,7 +10,7 @@ from functools import lru_cache
 
 from dotenv import load_dotenv
 from google.cloud import secretmanager
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
 
 class Settings(BaseModel):
