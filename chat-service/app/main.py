@@ -188,7 +188,37 @@ async def chat_event(request: Request) -> dict[str, Any]:
         )
 
         if not chain_result.should_call_gemini:
-            return _chat_reply(chain_result.response_to_user or "")
+            verdict = chain_result.verdict
+            gmail: GmailClient | None = request.app.state.gmail
+            settings_for_email = get_settings()
+            if (
+                verdict.action == Action.ESCALATE
+                and verdict.category != "MENTAL_HEALTH"
+                and gmail is not None
+                and settings_for_email.hr_escalation_email
+            ):
+                background_tasks.add_task(
+                    _send_escalation_email,
+                    gmail,
+                    settings_for_email.hr_escalation_email,
+                    verdict.category,
+                    verdict.reason,
+                    user_email,
+                    session_id,
+                )
+            response_text = chain_result.response_to_user or ""
+            if verdict.action == Action.BLOCK and verdict.category in {"FCRA", "FAIR_HOUSING"}:
+                try:
+                    doc_citations = search_docs(user_text)
+                    if doc_citations:
+                        links = "\n".join(f"- [{c.title}]({c.url})" for c in doc_citations[:2])
+                        response_text = (
+                            f"{response_text}\n\n"
+                            f"I found these related articles in Preiss Central:\n{links}"
+                        )
+                except Exception as exc:  # noqa: BLE001
+                    log.warning("block_doc_search_failed", error=str(exc))
+            return _chat_reply(response_text)
 
         settings = get_settings()
         show_ticket_button = False

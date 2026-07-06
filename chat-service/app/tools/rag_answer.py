@@ -247,3 +247,41 @@ def answer_with_citations(
         citations=citations,
         chunks_retrieved=len(neighbours),
     )
+
+
+def search_docs(query: str, top_k: int = 3) -> list[Citation]:
+    """Return citation links for the top matching D360 docs without generating an answer.
+
+    Used to surface relevant policy docs alongside guardrail block responses.
+    Returns an empty list on any error or when retrieval is unavailable.
+    """
+    if not query.strip():
+        return []
+    try:
+        embedder, index, store = _get_retrieval()
+        vector = embedder.embed_query(query)
+        neighbours = index.query(vector, neighbor_count=top_k)
+    except Exception as exc:  # noqa: BLE001
+        log.warning("doc_search_retrieval_failed", error=str(exc))
+        return []
+
+    if not neighbours:
+        return []
+
+    ordered_ids = [n["id"] for n in neighbours]
+    try:
+        stored = store.get_many(ordered_ids)
+    except Exception as exc:  # noqa: BLE001
+        log.warning("doc_search_chunk_store_failed", error=str(exc))
+        return []
+
+    citations: list[Citation] = []
+    seen_urls: set[str] = set()
+    for dp_id in ordered_ids:
+        ch = stored.get(dp_id)
+        if ch is None or not ch.url:
+            continue
+        if ch.url not in seen_urls:
+            seen_urls.add(ch.url)
+            citations.append(Citation(number=len(citations) + 1, title=ch.title, url=ch.url))
+    return citations
