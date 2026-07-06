@@ -128,6 +128,38 @@ def _test_values_for(request_type: str, sender_email: str) -> dict[str, str]:
     }
 
 
+_ESCALATION_EMAIL_SUBJECTS: dict[str, str] = {
+    "OSHA": "OSHA Safety Emergency — Molli Escalation",
+    "ESCALATION": "Employee Escalation Request — Molli",
+    "HR_LEGAL": "HR/Legal Escalation — Molli",
+}
+_DEFAULT_ESCALATION_SUBJECT = "Guardrail Escalation — Molli"
+
+
+def _send_escalation_email(
+    gmail: GmailClient,
+    to: str,
+    category: str,
+    reason: str,
+    user_email: str,
+    session_id: str,
+) -> None:
+    subject = _ESCALATION_EMAIL_SUBJECTS.get(category, _DEFAULT_ESCALATION_SUBJECT)
+    body = (
+        f"Molli has flagged a conversation for your attention.\n\n"
+        f"Category:   {category}\n"
+        f"Employee:   {user_email}\n"
+        f"Reason:     {reason}\n"
+        f"Session ID: {session_id}\n\n"
+        f"Please follow up with the employee directly."
+    )
+    try:
+        gmail.send_email(to=to, subject=subject, body=body)
+        log.info("escalation_email_sent", category=category)
+    except Exception as exc:  # noqa: BLE001
+        log.error("escalation_email_failed", error=str(exc), category=category)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     """Construct the Freshservice client once per container at startup and
@@ -135,6 +167,8 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     several container instances under load; each gets its own client, which
     is correct — each manages its own connection pool.
     """
+    import json
+
     settings = get_settings()
     app.state.ticketing = FreshserviceClient(
         base_url=settings.freshservice_base_url,
@@ -146,6 +180,21 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         database=settings.firestore_database,
     )
     log.info("conversation_store_initialized")
+
+    # Gmail client — only initialised when all three settings are present.
+    app.state.gmail = None
+    if settings.gmail_sa_secret_name and settings.gmail_sender_email and settings.hr_escalation_email:
+        try:
+            from molli_shared.config import get_secret
+            sa_key_json = get_secret(settings.gmail_sa_secret_name, settings.gcp_project_id)
+            app.state.gmail = GmailClient(
+                sender_email=settings.gmail_sender_email,
+                sa_key_info=json.loads(sa_key_json),
+            )
+            log.info("gmail_client_initialized", sender=settings.gmail_sender_email)
+        except Exception as exc:  # noqa: BLE001
+            log.error("gmail_client_init_failed", error=str(exc))
+
     yield
     await app.state.ticketing.aclose()
     log.info("ticketing_client_closed")
@@ -161,7 +210,7 @@ async def health() -> dict[str, str]:
 
 
 @app.post("/")
-async def chat_event(request: Request) -> dict[str, Any]:
+async def chat_event(request: Request, background_tasks: BackgroundTasks) -> dict[str, Any]:
     event = await request.json()
     log.info("received_chat_event", payload=event)
     event_type, message = _classify(event)

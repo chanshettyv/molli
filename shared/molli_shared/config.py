@@ -38,11 +38,14 @@ class Settings(BaseModel):
         False  # safe default; flip to False to create real tickets
     )
 
-    # Auto-escalation ticket routing — confirm group_id with Adam before deploying.
-    # If freshservice_hr_group_id is None, auto-ticket creation is skipped with a warning.
-    freshservice_hr_group_id: int | None = None
-    # msf_affected_location for auto-created escalation tickets; comma-separated in env.
-    freshservice_escalation_location: list[str] = Field(default_factory=lambda: ["Unknown"])
+    # Gmail escalation emails — all three must be set to enable sending.
+    # hr_escalation_email: recipient (Sally's email).
+    # gmail_sender_email: the Workspace "from" address the SA is delegated to send as.
+    # gmail_sa_secret_name: Secret Manager secret holding the SA key JSON.
+    hr_escalation_email: str | None = None
+    gmail_sender_email: str | None = None
+    gmail_sa_secret_name: str | None = None
+
 
     @property
     def freshservice_base_url(self) -> str:
@@ -74,6 +77,9 @@ def get_settings() -> Settings:
         freshservice_dry_run=os.environ.get("FRESHSERVICE_DRY_RUN", "false").lower()
         != "false",
         freshservice_api_key=os.environ["FRESHSERVICE_API_KEY"],
+        hr_escalation_email=os.environ.get("HR_ESCALATION_EMAIL"),
+        gmail_sender_email=os.environ.get("GMAIL_SENDER_EMAIL"),
+        gmail_sa_secret_name=os.environ.get("GMAIL_SA_SECRET_NAME"),
     )
 
 

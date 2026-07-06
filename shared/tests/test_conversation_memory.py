@@ -15,7 +15,6 @@ import pytest
 from molli_shared import query_rewrite
 from molli_shared.conversation_store import (
     ConversationStore,
-    Turn,
     _PLACEHOLDER,
 )
 from molli_shared.guardrails.dlp import DLPResult

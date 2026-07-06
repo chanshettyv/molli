@@ -13,7 +13,7 @@ from unittest.mock import patch
 import pytest
 
 from molli_shared import intent
-from molli_shared.intent import IntentResult, classify_intent
+from molli_shared.intent import classify_intent
 
 
 def _mock_reply(intent_label: str, confidence: float) -> str:

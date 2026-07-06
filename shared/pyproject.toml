@@ -12,6 +12,7 @@ dependencies = [
     "pydantic-settings>=2.0",
     "httpx>=0.27",
     "google-cloud-dlp>=3.36.0",
+    "google-api-python-client>=2.130",
 ]
 
 [build-system]
