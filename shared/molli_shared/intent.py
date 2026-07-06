@@ -32,7 +32,7 @@ from molli_shared.config import get_settings
 
 log = structlog.get_logger()
 
-_CLASSIFY_TIMEOUT = 4.0  # seconds; fail-open on breach
+_CLASSIFY_TIMEOUT = 2.0  # seconds; fail-open on breach
 
 # Below this confidence we treat the result as 'general' for routing purposes,
 # feeding the no-context / general fallback rather than scoping hard.
@@ -63,7 +63,7 @@ _SYSTEM_PROMPT = (
     "general knowledge, social, or too vague to tell.\n"
     "\n"
     "Respond with ONLY a JSON object, no markdown, no prose, of the form:\n"
-    '{\"intent\": \"IT\", \"confidence\": 0.0}\n'
+    '{"intent": "IT", "confidence": 0.0}\n'
     "where intent is one of IT, HR, Ops, general and confidence is your "
     "certainty from 0.0 to 1.0. Use 'general' with low confidence when unsure."
 )

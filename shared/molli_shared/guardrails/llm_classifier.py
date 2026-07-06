@@ -29,7 +29,7 @@ from .fcra import CANNED_RESPONSE as _FCRA_CANNED
 
 log = structlog.get_logger()
 
-_CLASSIFY_TIMEOUT = 4.0  # seconds; fail-open on breach
+_CLASSIFY_TIMEOUT = 2.0  # seconds; fail-open on breach
 
 _SYSTEM_PROMPT = (
     "You are a compliance classifier for a property management company's "

@@ -230,8 +230,12 @@ async def chat_event(request: Request) -> dict[str, Any]:
             convo = request.app.state.conversations
             _history = ConversationStore.as_transcript(convo.get_recent(space_id))
             _topic_task = asyncio.create_task(detect_topic_change(user_text, _history))
+            # Intent only needs a department signal, not the standalone-rewritten
+            # query, so classify concurrently with rewrite instead of waiting on
+            # it -- saves up to one full LLM round trip on multi-turn replies.
+            _intent_task = asyncio.create_task(classify_intent(gemini_query))
             gemini_query = await rewrite_followup(gemini_query, _history)
-            intent_result = await classify_intent(gemini_query)
+            intent_result = await _intent_task
             log.info(
                 "intent_classified",
                 intent=intent_result.intent,
