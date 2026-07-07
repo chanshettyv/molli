@@ -167,8 +167,6 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     several container instances under load; each gets its own client, which
     is correct — each manages its own connection pool.
     """
-    import json
-
     settings = get_settings()
     app.state.ticketing = FreshserviceClient(
         base_url=settings.freshservice_base_url,
@@ -183,13 +181,11 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 
     # Gmail client — only initialised when all three settings are present.
     app.state.gmail = None
-    if settings.gmail_sa_secret_name and settings.gmail_sender_email and settings.hr_escalation_email:
+    if settings.gmail_sa_email and settings.gmail_sender_email and settings.hr_escalation_email:
         try:
-            from molli_shared.config import get_secret
-            sa_key_json = get_secret(settings.gmail_sa_secret_name, settings.gcp_project_id)
             app.state.gmail = GmailClient(
                 sender_email=settings.gmail_sender_email,
-                sa_key_info=json.loads(sa_key_json),
+                service_account_email=settings.gmail_sa_email,
             )
             log.info("gmail_client_initialized", sender=settings.gmail_sender_email)
         except Exception as exc:  # noqa: BLE001

@@ -1,18 +1,21 @@
 """Gmail API client for sending escalation notification emails.
 
-Uses a Google service account with domain-wide delegation (DWD) so the
-Cloud Run service can send email as a Workspace address (e.g. molli@preiss.com)
-without a user ever being logged in.
+Uses domain-wide delegation (DWD) via the Cloud Run service account's
+built-in ADC credentials + IAM JWT signing — no service account key file
+required. This works even when iam.disableServiceAccountKeyCreation is
+enforced at the org level.
 
-Setup required (one-time, done in GCP + Google Admin Console):
+One-time GCP setup:
   1. Enable the Gmail API on the GCP project.
-  2. Enable domain-wide delegation on the Cloud Run service account in
-     GCP Console → IAM → Service Accounts → [SA] → Edit → Enable DWD.
-  3. In Google Admin Console → Security → API Controls → Domain-wide
+  2. Enable domain-wide delegation on the Cloud Run SA (GCP Console →
+     IAM & Admin → Service Accounts → [SA] → Advanced settings → DWD).
+  3. In Google Admin Console → Security → API controls → Domain-wide
      delegation, add the SA client ID with scope:
        https://www.googleapis.com/auth/gmail.send
-  4. Create a service account key (JSON) for the SA, store it in
-     Secret Manager under the name referenced by GMAIL_SA_SECRET_NAME.
+  4. Grant the SA permission to sign JWTs for itself:
+       gcloud iam service-accounts add-iam-policy-binding SA_EMAIL \\
+         --member="serviceAccount:SA_EMAIL" \\
+         --role="roles/iam.serviceAccountTokenCreator"
 
 The send_email() method is synchronous — the Gmail API client (googleapiclient)
 is not async. Call it via FastAPI BackgroundTasks so it runs in a thread pool
@@ -32,30 +35,46 @@ _GMAIL_SEND_SCOPE = "https://www.googleapis.com/auth/gmail.send"
 
 
 class GmailClient:
-    """Sends email via the Gmail API using a service account with DWD.
+    """Sends email via the Gmail API using keyless DWD.
 
     Args:
-        sender_email: The Workspace address to send as (e.g. molli@preiss.com).
-                      Must be within the domain that authorised the SA for DWD.
-        sa_key_info:  Parsed JSON dict of the service account key downloaded
-                      from GCP. Load from Secret Manager at startup and pass in.
+        sender_email:         Workspace address to send as (e.g. molli.svc@preiss.com).
+        service_account_email: Cloud Run SA email (e.g. 123-compute@developer.gserviceaccount.com).
     """
 
-    def __init__(self, *, sender_email: str, sa_key_info: dict[str, Any]) -> None:
+    def __init__(self, *, sender_email: str, service_account_email: str) -> None:
         self._sender_email = sender_email
-        self._sa_key_info = sa_key_info
+        self._service_account_email = service_account_email
         self._service: Any = None  # lazy-loaded
 
     def _get_service(self) -> Any:
         if self._service is None:
+            import google.auth
+            import google.auth.transport.requests
+            from google.auth import iam
             from google.oauth2 import service_account
             from googleapiclient.discovery import build  # type: ignore[import-untyped]
 
-            creds = service_account.Credentials.from_service_account_info(
-                self._sa_key_info,
-                scopes=[_GMAIL_SEND_SCOPE],
-            ).with_subject(self._sender_email)
+            # ADC resolves to the Cloud Run metadata server — no key file needed.
+            source_creds, _ = google.auth.default(
+                scopes=["https://www.googleapis.com/auth/iam"]
+            )
+            http_request = google.auth.transport.requests.Request()
+            source_creds.refresh(http_request)
 
+            # Sign JWTs via IAM API (requires iam.serviceAccounts.signJwt on the SA).
+            signer = iam.Signer(
+                request=http_request,
+                credentials=source_creds,
+                service_account_email=self._service_account_email,
+            )
+            creds = service_account.Credentials(
+                signer=signer,
+                service_account_email=self._service_account_email,
+                token_uri="https://oauth2.googleapis.com/token",
+                scopes=[_GMAIL_SEND_SCOPE],
+                subject=self._sender_email,  # DWD: act as this Workspace user
+            )
             # cache_discovery=False avoids a filesystem write in Cloud Run.
             self._service = build("gmail", "v1", credentials=creds, cache_discovery=False)
         return self._service

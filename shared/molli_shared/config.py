@@ -41,10 +41,10 @@ class Settings(BaseModel):
     # Gmail escalation emails — all three must be set to enable sending.
     # hr_escalation_email: recipient (Sally's email).
     # gmail_sender_email: the Workspace "from" address the SA is delegated to send as.
-    # gmail_sa_secret_name: Secret Manager secret holding the SA key JSON.
+    # gmail_sa_email: Cloud Run service account email for keyless DWD signing.
     hr_escalation_email: str | None = None
     gmail_sender_email: str | None = None
-    gmail_sa_secret_name: str | None = None
+    gmail_sa_email: str | None = None
 
 
     @property
@@ -79,7 +79,7 @@ def get_settings() -> Settings:
         freshservice_api_key=os.environ["FRESHSERVICE_API_KEY"],
         hr_escalation_email=os.environ.get("HR_ESCALATION_EMAIL"),
         gmail_sender_email=os.environ.get("GMAIL_SENDER_EMAIL"),
-        gmail_sa_secret_name=os.environ.get("GMAIL_SA_SECRET_NAME"),
+        gmail_sa_email=os.environ.get("GMAIL_SA_EMAIL"),
     )
 
 
