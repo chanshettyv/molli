@@ -238,7 +238,7 @@ async def chat_event(request: Request, background_tasks: BackgroundTasks) -> dic
             settings_for_email = get_settings()
             if (
                 verdict.action == Action.ESCALATE
-                and verdict.category != "MENTAL_HEALTH"
+                and verdict.category in {"OSHA", "HR_LEGAL", "ESCALATION_HR"}
                 and gmail is not None
                 and settings_for_email.hr_escalation_email
             ):

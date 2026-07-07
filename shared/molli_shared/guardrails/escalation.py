@@ -18,20 +18,31 @@ from collections import defaultdict
 from .base import Action, GuardrailVerdict
 
 # ---------------------------------------------------------------------------
-# Tier 3 — explicit human handoff patterns
+# Tier 3 — HR-specific escalation (emails Sally)
+# ---------------------------------------------------------------------------
+
+_HR_REQUEST_PATTERNS: list[str] = [
+    r"\b(talk|speak|connect|get) (to|with) (someone in |the )?(hr|human resources)\b",
+    r"\b(contact|reach|email|call) (hr|human resources)\b",
+    r"\btransfer (me|this).{0,30}(hr|human resources)\b",
+    r"\b(i need|want) (to (talk|speak) to )?(hr|human resources)\b",
+    r"\bsomething (sensitive|personal|private) (that happened|at work)\b",
+    r"\bdon'?t feel comfortable putting (it|this) in a ticket\b",
+]
+
+# ---------------------------------------------------------------------------
+# Tier 3 — general human handoff (Freshservice ticket, no email)
 # ---------------------------------------------------------------------------
 
 _TIER3_PATTERNS: list[str] = [
     r"\b(talk|speak|connect) (to|with) (a )?(real )?(person|human|someone)\b",
     r"\bget (me )?(a )?(real )?(human|person|agent)\b",
     r"\b(want|'?d like) (a |to (talk|speak) (to|with) )?(real )?(person|human|someone|agent)\b",
-    r"\btransfer (me|this).{0,30}(person|human|agent|hr|it|manager|team)\b",
+    r"\btransfer (me|this).{0,30}(person|human|agent|it|manager|team)\b",
     r"\bescalate (this|my (issue|question|request))\b",
-    r"\bcontact (hr|it|a manager|my manager|someone) directly\b",
+    r"\bcontact (it|a manager|my manager|someone) directly\b",
     r"\bwho (do i|can i) (actually )?(call|contact|talk to|reach)\b",
     r"\bi need (this handled|someone to actually|a person)\b",
-    r"\bdon'?t feel comfortable putting (it|this) in a ticket\b",
-    r"\bsomething (sensitive|personal|private) (that happened|at work)\b",
     r"\bcan you connect me with\b",
     r"\bi already asked (this|twice|before|multiple times)\b",
     r"\b(molli )?(didn'?t|hasn'?t) (help(ed)?|answer(ed)?|fix(ed)?)\b",
@@ -87,6 +98,10 @@ def record_question(user_email: str, message: str) -> int:
     return log.count(key)
 
 
+def _is_hr_request(text: str) -> bool:
+    return any(re.search(p, text, re.IGNORECASE) for p in _HR_REQUEST_PATTERNS)
+
+
 def _is_tier3(text: str) -> bool:
     return any(re.search(p, text, re.IGNORECASE) for p in _TIER3_PATTERNS)
 
@@ -114,7 +129,17 @@ class EscalationGuardrail:
                 canned_response=CANNED_RESPONSE_GRACEFUL_CLOSE,
             )
 
-        # Tier 3 — explicit human request or frustration signal
+        # Tier 3 — explicit HR request (emails Sally)
+        if _is_hr_request(message):
+            repeat_count = record_question(user_email, message)
+            return GuardrailVerdict(
+                action=Action.ESCALATE,
+                category="ESCALATION_HR",
+                reason=f"Tier 3 HR escalation: explicit_hr_request=true | repeat_count={repeat_count}",
+                canned_response=CANNED_RESPONSE_TIER3,
+            )
+
+        # Tier 3 — general human request (Freshservice ticket, no email to Sally)
         if _is_tier3(message):
             repeat_count = record_question(user_email, message)
             return GuardrailVerdict(
