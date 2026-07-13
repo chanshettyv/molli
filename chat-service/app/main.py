@@ -15,7 +15,6 @@ from typing import Any
 import structlog
 from fastapi import BackgroundTasks, FastAPI, Request
 from molli_shared.clients.freshservice import FreshserviceClient
-from molli_shared.clients.gmail import GmailClient
 from molli_shared.clients.ticketing import (
     TicketingAuthError,
     TicketingError,
@@ -128,36 +127,33 @@ def _test_values_for(request_type: str, sender_email: str) -> dict[str, str]:
     }
 
 
-_ESCALATION_EMAIL_SUBJECTS: dict[str, str] = {
-    "OSHA": "OSHA Safety Emergency — Molli Escalation",
-    "ESCALATION": "Employee Escalation Request — Molli",
-    "HR_LEGAL": "HR/Legal Escalation — Molli",
-}
-_DEFAULT_ESCALATION_SUBJECT = "Guardrail Escalation — Molli"
-
-
-def _send_escalation_email(
-    gmail: GmailClient,
-    to: str,
+def _send_webhook_notification(
+    webhook_url: str,
     category: str,
-    reason: str,
     user_email: str,
-    session_id: str,
+    user_name: str,
+    user_message: str,
 ) -> None:
-    subject = _ESCALATION_EMAIL_SUBJECTS.get(category, _DEFAULT_ESCALATION_SUBJECT)
-    body = (
-        f"Molli has flagged a conversation for your attention.\n\n"
-        f"Category:   {category}\n"
-        f"Employee:   {user_email}\n"
-        f"Reason:     {reason}\n"
-        f"Session ID: {session_id}\n\n"
-        f"Please follow up with the employee directly."
+    import httpx
+
+    label_map = {
+        "ESCALATION_HR": "HR Escalation",
+        "OSHA": "OSHA Safety Emergency",
+        "HR_LEGAL": "HR/Legal Escalation",
+    }
+    label = label_map.get(category, "Escalation")
+    text = (
+        f"*{label} — Molli*\n"
+        f"Employee: {user_name} ({user_email})\n"
+        f"Message: \"{user_message}\"\n\n"
+        f"Please follow up with this employee directly."
     )
     try:
-        gmail.send_email(to=to, subject=subject, body=body)
-        log.info("escalation_email_sent", category=category)
+        resp = httpx.post(webhook_url, json={"text": text}, timeout=10)
+        resp.raise_for_status()
+        log.info("webhook_notification_sent", category=category)
     except Exception as exc:  # noqa: BLE001
-        log.error("escalation_email_failed", error=str(exc), category=category)
+        log.error("webhook_notification_failed", error=str(exc), category=category)
 
 
 @asynccontextmanager
@@ -178,18 +174,6 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         database=settings.firestore_database,
     )
     log.info("conversation_store_initialized")
-
-    # Gmail client — only initialised when all three settings are present.
-    app.state.gmail = None
-    if settings.gmail_sa_email and settings.gmail_sender_email and settings.hr_escalation_email:
-        try:
-            app.state.gmail = GmailClient(
-                sender_email=settings.gmail_sender_email,
-                service_account_email=settings.gmail_sa_email,
-            )
-            log.info("gmail_client_initialized", sender=settings.gmail_sender_email)
-        except Exception as exc:  # noqa: BLE001
-            log.error("gmail_client_init_failed", error=str(exc))
 
     yield
     await app.state.ticketing.aclose()
@@ -234,22 +218,19 @@ async def chat_event(request: Request, background_tasks: BackgroundTasks) -> dic
 
         if not chain_result.should_call_gemini:
             verdict = chain_result.verdict
-            gmail: GmailClient | None = request.app.state.gmail
-            settings_for_email = get_settings()
+            webhook_url = get_settings().hr_escalation_webhook_url
             if (
                 verdict.action == Action.ESCALATE
                 and verdict.category in {"OSHA", "HR_LEGAL", "ESCALATION_HR"}
-                and gmail is not None
-                and settings_for_email.hr_escalation_email
+                and webhook_url
             ):
                 background_tasks.add_task(
-                    _send_escalation_email,
-                    gmail,
-                    settings_for_email.hr_escalation_email,
+                    _send_webhook_notification,
+                    webhook_url,
                     verdict.category,
-                    verdict.reason,
                     user_email,
-                    session_id,
+                    user_name,
+                    user_text,
                 )
             response_text = chain_result.response_to_user or ""
             if verdict.action == Action.BLOCK and verdict.category in {"FCRA", "FAIR_HOUSING"}:

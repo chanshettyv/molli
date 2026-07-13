@@ -38,13 +38,9 @@ class Settings(BaseModel):
         False  # safe default; flip to False to create real tickets
     )
 
-    # Gmail escalation emails — all three must be set to enable sending.
-    # hr_escalation_email: recipient (Sally's email).
-    # gmail_sender_email: the Workspace "from" address the SA is delegated to send as.
-    # gmail_sa_email: Cloud Run service account email for keyless DWD signing.
-    hr_escalation_email: str | None = None
-    gmail_sender_email: str | None = None
-    gmail_sa_email: str | None = None
+    # Escalation webhook — Google Chat incoming webhook URL.
+    # When set, HR/OSHA/HR_LEGAL escalations POST a notification to this space.
+    hr_escalation_webhook_url: str | None = None
 
 
     @property
@@ -77,9 +73,7 @@ def get_settings() -> Settings:
         freshservice_dry_run=os.environ.get("FRESHSERVICE_DRY_RUN", "false").lower()
         != "false",
         freshservice_api_key=os.environ["FRESHSERVICE_API_KEY"],
-        hr_escalation_email=os.environ.get("HR_ESCALATION_EMAIL"),
-        gmail_sender_email=os.environ.get("GMAIL_SENDER_EMAIL"),
-        gmail_sa_email=os.environ.get("GMAIL_SA_EMAIL"),
+        hr_escalation_webhook_url=os.environ.get("HR_ESCALATION_WEBHOOK_URL"),
     )
 
 
