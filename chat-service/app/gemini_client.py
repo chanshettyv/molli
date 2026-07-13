@@ -11,7 +11,8 @@ from __future__ import annotations
 import structlog
 import vertexai
 from molli_shared.config import get_settings
-from vertexai.generative_models import GenerationConfig, GenerativeModel
+from molli_shared.vertex_retry import vertex_retry
+from vertexai.generative_models import GenerationConfig, GenerationResponse, GenerativeModel
 
 log = structlog.get_logger()
 
@@ -55,6 +56,13 @@ def _get_model() -> GenerativeModel:
     return _model
 
 
+@vertex_retry
+def _generate(model: GenerativeModel, prompt: str, temperature: float) -> GenerationResponse:
+    return model.generate_content(
+        prompt, generation_config=GenerationConfig(temperature=temperature)
+    )
+
+
 def ask_gemini(user_text: str) -> str:
     """Send user_text to Gemini and return the model's text reply.
 
@@ -69,10 +77,7 @@ def ask_gemini(user_text: str) -> str:
     settings = get_settings()
     try:
         model = _get_model()
-        response = model.generate_content(
-            user_text,
-            generation_config=GenerationConfig(temperature=settings.gemini_temperature),
-        )
+        response = _generate(model, user_text, settings.gemini_temperature)
         text = (response.text or "").strip()
         if not text:
             log.warning("gemini_empty_response")

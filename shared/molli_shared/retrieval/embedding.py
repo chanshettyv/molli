@@ -10,10 +10,12 @@ dimensions must match or upserts will be rejected.
 
 from __future__ import annotations
 
-from typing import cast
+from typing import Any, cast
 
 import vertexai
 from vertexai.language_models import TextEmbeddingInput, TextEmbeddingModel
+
+from molli_shared.vertex_retry import vertex_retry
 
 _MODEL_NAME = "text-embedding-004"
 _EXPECTED_DIMS = 768
@@ -47,9 +49,7 @@ class Embedder:
                 TextEmbeddingInput(text=t, task_type=_TASK_TYPE, title=title)
                 for t in batch
             ]
-            results = self._model.get_embeddings(
-                cast(list[str | TextEmbeddingInput], inputs)
-            )
+            results = self._get_embeddings(inputs)
             for r in results:
                 if len(r.values) != _EXPECTED_DIMS:
                     raise ValueError(
@@ -59,6 +59,10 @@ class Embedder:
                 vectors.append(list(r.values))
         return vectors
 
+    @vertex_retry
+    def _get_embeddings(self, inputs: list[TextEmbeddingInput]) -> list[Any]:
+        return self._model.get_embeddings(cast(list[str | TextEmbeddingInput], inputs))
+
     def embed_query(self, text: str) -> list[float]:
         """Embed a single user query for retrieval.
 
@@ -67,7 +71,7 @@ class Embedder:
         chunks are embedded with embed() / RETRIEVAL_DOCUMENT; queries must use
         this method for correct ranking.
         """
-        result = self._model.get_embeddings(
+        result = self._get_embeddings(
             [TextEmbeddingInput(text=text, task_type=_QUERY_TASK_TYPE)]
         )
         values = list(result[0].values)

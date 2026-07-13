@@ -35,7 +35,8 @@ import vertexai
 from molli_shared.chunk_store import ChunkStore, StoredChunk
 from molli_shared.config import get_settings
 from molli_shared.retrieval import Embedder, VectorIndex
-from vertexai.generative_models import GenerationConfig, GenerativeModel
+from molli_shared.vertex_retry import vertex_retry
+from vertexai.generative_models import GenerationConfig, GenerationResponse, GenerativeModel
 
 log = structlog.get_logger()
 
@@ -120,6 +121,13 @@ def _get_model() -> GenerativeModel:
             system_instruction=RAG_SYSTEM_INSTRUCTION,
         )
     return _model
+
+
+@vertex_retry
+def _generate(model: GenerativeModel, prompt: str, temperature: float) -> GenerationResponse:
+    return model.generate_content(
+        prompt, generation_config=GenerationConfig(temperature=temperature)
+    )
 
 
 def _get_retrieval() -> tuple[Embedder, VectorIndex, ChunkStore]:
@@ -220,10 +228,7 @@ def answer_with_citations(
     try:
         settings = get_settings()
         model = _get_model()
-        response = model.generate_content(
-            prompt,
-            generation_config=GenerationConfig(temperature=settings.gemini_temperature),
-        )
+        response = _generate(model, prompt, settings.gemini_temperature)
         text = (response.text or "").strip()
         if not text:
             log.warning("rag_empty_response")

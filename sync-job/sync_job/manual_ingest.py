@@ -21,6 +21,16 @@ duplicate). datapoint id = ``pdf-manual::<slug>::<ordinal>``.
 These datapoints live OUTSIDE the D360 watermark, so the nightly sync never
 touches them -- they persist until you remove them here.
 
+Chunking modes
+--------------
+Default: ``_chunk_text`` -- paragraph packing to ~_TARGET_CHARS. Fine for prose.
+``--by-section``: ``_chunk_text_by_section`` -- starts a new chunk at each
+detected heading and keeps bullet lists intact. Use for handbook-style PDFs
+where several topics otherwise land in one large chunk and a specific answer
+(e.g. the list of paid holidays) gets buried, ranks poorly, or the model
+declines to ground on it. This mode is manual-ingest only; the D360 nightly
+sync chunks via ``sync_job.chunking.chunk_html`` and is not affected.
+
 Migration cleanup
 -----------------
 When the same content is later published to D360 and picked up by the sync,
@@ -67,6 +77,10 @@ _TARGET_CHARS = 3000
 # pacing. For a single PDF this is almost always one batch (no pause).
 _UPSERT_BATCH = 100
 _UPSERT_PAUSE_S = 6
+
+# remove_article sweeps 50 ordinals per call; sweep up to this many so cleanup
+# covers large ingests (--by-section can produce >100 chunks).
+_REMOVE_ORDINAL_CEILING = 300
 
 
 def _slugify(title: str) -> str:
@@ -137,6 +151,124 @@ def _chunk_text(text: str) -> list[str]:
     return chunks
 
 
+# --- Section-aware chunking (opt-in via --by-section) for handbook-style PDFs
+# --- where several topics get buried in one large chunk. These helpers are used
+# --- ONLY by manual ingest; the D360 nightly sync uses
+# --- sync_job.chunking.chunk_html and is untouched.
+#
+# NOTE: the heading heuristic is approximate and tuned to text-layer PDFs whose
+# section headings are short multi-word Title-Case lines or ALL-CAPS banners
+# (e.g. a Google-Docs export). It can mis-split an oddly formatted PDF -- fine
+# for a stopgap ingest, but eyeball a --dry-run before writing to the index.
+_FOOTER = re.compile(r"Page\s+\d+\s+of\s+\d+")
+_TOC_LINE = re.compile(r"^.{2,58}\s\d{1,3}$")  # e.g. "Business Ethics and Conduct 8"
+_BULLET = "\u2022\u25cf"  # bullet glyphs: • ●
+_MIN_SECTION = 30  # fold sections shorter than this forward (bare banners)
+
+
+def _skip_line(raw: str) -> bool:
+    """Drop running page footers and table-of-contents entries."""
+    s = _normalize(raw)
+    if not s:
+        return True
+    if _FOOTER.search(s):
+        return True
+    return _TOC_LINE.match(s) and re.search(r"[A-Za-z]", s)
+
+
+def _looks_like_heading(line: str) -> bool:
+    """A heading is a short standalone line that is either a multi-word
+    Title-Case phrase or a long ALL-CAPS banner. Deliberately strict:
+    text-extraction fragments body prose into single capitalized words
+    ('Preiss', 'Company'), so single-word non-banner lines are NOT headings.
+    """
+    s = _normalize(line)
+    if not s or s[0] in _BULLET + "-":
+        return False
+    if len(s) < 4 or len(s) > 60:
+        return False
+    if s[-1] in ".,:;!?":
+        return False
+    if not (s[0].isalpha() and s[0].isupper()):
+        return False
+    words = s.split()
+    letter = [w for w in (re.sub(r"[^A-Za-z]", "", w) for w in words) if w]
+    if not letter:
+        return False
+    if len(words) == 1:  # single token: long ALL-CAPS banner only
+        return letter[0].isupper() and len(letter[0]) >= 7
+    return all(len(w) <= 3 or w[0].isupper() for w in letter)
+
+
+def _segments(body: str) -> list[str]:
+    """Break a section into packable units -- whole bullet items + sentences --
+    so the packer never cuts through a list item or mid-sentence."""
+    segs: list[str] = []
+    for part in re.split(rf"(?=[{_BULLET}]\s)", body):
+        part = part.strip()
+        if not part:
+            continue
+        if part[0] in _BULLET:
+            segs.append(part)
+        else:
+            segs += [s.strip() for s in re.split(r"(?<=[.!?])\s+", part) if s.strip()]
+    return segs
+
+
+def _pack(segs: list[str], max_chars: int) -> list[str]:
+    """Greedily pack segments up to max_chars; hard-split only a lone
+    over-budget unit (rare)."""
+    out: list[str] = []
+    buf = ""
+    for s in segs:
+        if len(s) > max_chars:
+            if buf:
+                out.append(buf)
+                buf = ""
+            out += [s[i : i + max_chars].strip() for i in range(0, len(s), max_chars)]
+            continue
+        if buf and len(buf) + len(s) + 1 > max_chars:
+            out.append(buf)
+            buf = ""
+        buf = f"{buf} {s}".strip()
+    if buf:
+        out.append(buf)
+    return [c for c in out if c]
+
+
+def _chunk_text_by_section(text: str, max_chars: int = 1400) -> list[str]:
+    """Heading-delimited chunker: start a new chunk at each detected heading,
+    drop footer/TOC noise, and keep each section under max_chars by packing on
+    bullet/sentence boundaries. Deterministic -- same input yields the same
+    chunks/ordinals, so re-runs overwrite the same datapoint ids (same contract
+    as _chunk_text)."""
+    sections: list[list[str]] = []
+    cur: list[str] = []
+    for raw in text.split("\n"):
+        if _skip_line(raw):
+            continue
+        if _looks_like_heading(raw) and cur:
+            sections.append(cur)
+            cur = []
+        cur.append(raw)
+    if cur:
+        sections.append(cur)
+
+    bodies = [b for b in (_normalize(" ".join(s)) for s in sections) if b]
+
+    merged: list[str] = []
+    for b in bodies:
+        if merged and len(merged[-1]) < _MIN_SECTION:  # fold bare banners forward
+            merged[-1] = f"{merged[-1]} {b}".strip()
+        else:
+            merged.append(b)
+
+    chunks: list[str] = []
+    for b in merged:
+        chunks.extend([b] if len(b) <= max_chars else _pack(_segments(b), max_chars))
+    return chunks
+
+
 def _make_index(settings) -> VectorIndex:
     return VectorIndex(
         project_id=settings.gcp_project_id,
@@ -148,10 +280,18 @@ def _make_index(settings) -> VectorIndex:
     )
 
 
-def ingest(pdf_path: str, title: str, url: str, slug: str, dry_run: bool) -> None:
+def ingest(
+    pdf_path: str,
+    title: str,
+    url: str,
+    slug: str,
+    dry_run: bool,
+    by_section: bool = False,
+    max_chars: int = 1400,
+) -> None:
     article_id = f"{_ARTICLE_PREFIX}::{slug}"
     text = _extract_pdf_text(pdf_path)
-    chunk_texts = _chunk_text(text)
+    chunk_texts = _chunk_text_by_section(text, max_chars) if by_section else _chunk_text(text)
     if not chunk_texts:
         raise SystemExit("No chunks produced from the PDF; nothing to ingest.")
     log.info("article_id=%s -> %d chunk(s)", article_id, len(chunk_texts))
@@ -176,6 +316,12 @@ def ingest(pdf_path: str, title: str, url: str, slug: str, dry_run: bool) -> Non
 
     vectors = embedder.embed(chunk_texts, title=title)
 
+    # Vector Search rejects empty-string restrict tokens, and the shared
+    # _to_datapoint emits a restrict for every field. Manual PDFs have no D360
+    # category/heading, so use non-empty stand-ins: the prefix as category and
+    # the document title as the section label.
+    category = _ARTICLE_PREFIX
+    heading = title
     indexed = [
         IndexedChunk(
             article_id=article_id,
@@ -183,8 +329,8 @@ def ingest(pdf_path: str, title: str, url: str, slug: str, dry_run: bool) -> Non
             vector=v,
             title=title,
             url=url,
-            category_id="",
-            heading="",
+            category_id=category,
+            heading=heading,
         )
         for i, v in enumerate(vectors)
     ]
@@ -195,8 +341,8 @@ def ingest(pdf_path: str, title: str, url: str, slug: str, dry_run: bool) -> Non
             article_id=article_id,
             title=title,
             url=url,
-            heading="",
-            category_id="",
+            heading=heading,
+            category_id=category,
         )
         for ic, t in zip(indexed, chunk_texts, strict=True)
     ]
@@ -221,11 +367,17 @@ def remove(slug: str) -> None:
     article_id = f"{_ARTICLE_PREFIX}::{slug}"
     settings = get_settings()
 
-    # Index side: remove_article(article_id, 0) sweeps ordinals 0..49, which
-    # covers any single-PDF ingest.
+    # Index side: remove_article(article_id, k) sweeps ordinals k..k+49. Loop in
+    # blocks so cleanup covers large --by-section ingests (>50 chunks), not just
+    # the first 50. Safe to call with ids that don't exist.
     index = _make_index(settings)
-    index.remove_article(article_id, keep_ordinals=0)
-    log.info("removed index datapoints for %s (ordinals 0-49)", article_id)
+    for start in range(0, _REMOVE_ORDINAL_CEILING, 50):
+        index.remove_article(article_id, keep_ordinals=start)
+    log.info(
+        "removed index datapoints for %s (ordinals 0-%d)",
+        article_id,
+        _REMOVE_ORDINAL_CEILING - 1,
+    )
 
     # Firestore side: ChunkStore has no delete, so query the collection by
     # article_id and delete the matching docs directly.
@@ -257,6 +409,18 @@ def main() -> None:
         "--slug", default="", help="Override the slug (default: derived from title)"
     )
     p_ingest.add_argument("--dry-run", action="store_true", help="Extract + chunk only; no writes")
+    p_ingest.add_argument(
+        "--by-section",
+        action="store_true",
+        help="Heading-aware chunking (splits on section headings, keeps bullet "
+        "lists intact). Use for handbook-style PDFs where topics get buried.",
+    )
+    p_ingest.add_argument(
+        "--max-chars",
+        type=int,
+        default=1400,
+        help="Max chars per chunk when --by-section is set (default 1400).",
+    )
 
     p_remove = sub.add_parser("remove", help="Remove a previously ingested PDF (migration cleanup)")
     p_remove.add_argument("--slug", required=True, help="The slug used at ingest time")
@@ -265,7 +429,15 @@ def main() -> None:
 
     if args.command == "ingest":
         slug = args.slug or _slugify(args.title)
-        ingest(args.pdf, args.title, args.url, slug, args.dry_run)
+        ingest(
+            args.pdf,
+            args.title,
+            args.url,
+            slug,
+            args.dry_run,
+            by_section=args.by_section,
+            max_chars=args.max_chars,
+        )
     elif args.command == "remove":
         remove(args.slug)
     else:  # pragma: no cover

@@ -20,9 +20,30 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
+import structlog
+from google.api_core.exceptions import InvalidArgument
 from google.cloud import aiplatform_v1
 
+from molli_shared.vertex_retry import vertex_retry
+
+log = structlog.get_logger()
+
 _REGIONAL_HOST = "{region}-aiplatform.googleapis.com"
+
+# Vector Search restrict tokens have an undocumented-but-real byte-length cap;
+# a title/heading with multi-byte UTF-8 chars can blow past it well before
+# hitting the [:300] *character* truncation below, causing an opaque
+# INVALID_ARGUMENT on upsert. Cap by bytes, not characters, to actually stay
+# under it.
+_MAX_RESTRICT_BYTES = 200
+
+
+def _truncate_bytes(text: str, max_bytes: int = _MAX_RESTRICT_BYTES) -> str:
+    """Truncate to at most max_bytes UTF-8 bytes without splitting a char."""
+    encoded = text.encode("utf-8")
+    if len(encoded) <= max_bytes:
+        return text
+    return encoded[:max_bytes].decode("utf-8", errors="ignore")
 
 
 @dataclass
@@ -77,22 +98,63 @@ class VectorIndex:
         )
 
     def upsert(self, chunks: list[IndexedChunk]) -> int:
-        """Upsert chunks in batches. Returns the number upserted."""
+        """Upsert chunks in batches. Returns the number actually upserted.
+
+        A batch that fails with INVALID_ARGUMENT is retried one datapoint at a
+        time so a single malformed chunk (e.g. a restrict token over the
+        length cap) doesn't drop the whole batch -- the bad one is logged and
+        skipped, everything else in the batch still gets indexed.
+        """
         if not chunks:
             return 0
-        datapoints = [self._to_datapoint(c) for c in chunks]
         # The streaming upsert accepts a generous batch; chunk at 1000 to be safe.
         total = 0
-        for start in range(0, len(datapoints), 1000):
-            batch = datapoints[start : start + 1000]
-            self._index_client.upsert_datapoints(
-                request=aiplatform_v1.UpsertDatapointsRequest(
-                    index=self._index_name,
-                    datapoints=batch,
-                )
-            )
-            total += len(batch)
+        for start in range(0, len(chunks), 1000):
+            chunk_batch = chunks[start : start + 1000]
+            datapoints = [self._to_datapoint(c) for c in chunk_batch]
+            try:
+                self._upsert_datapoints(datapoints)
+                total += len(datapoints)
+            except InvalidArgument:
+                total += self._upsert_one_by_one(chunk_batch)
         return total
+
+    def _upsert_one_by_one(self, chunk_batch: list[IndexedChunk]) -> int:
+        """Fallback when a batch upsert is rejected: isolate the bad chunk(s).
+
+        Returns the count that upserted successfully; logs and skips any that
+        fail, instead of taking down the whole sync.
+        """
+        upserted = 0
+        for c in chunk_batch:
+            try:
+                self._upsert_datapoints([self._to_datapoint(c)])
+                upserted += 1
+            except InvalidArgument as exc:
+                log.error(
+                    "upsert_datapoint_rejected",
+                    article_id=c.article_id,
+                    ordinal=c.ordinal,
+                    title=c.title,
+                    title_bytes=len(c.title.encode("utf-8")),
+                    heading=c.heading,
+                    heading_bytes=len(c.heading.encode("utf-8")),
+                    category_id=c.category_id,
+                    url=c.url,
+                    vector_dims=len(c.vector),
+                    error=str(exc),
+                )
+        return upserted
+
+    def _upsert_datapoints(
+        self, datapoints: list[aiplatform_v1.IndexDatapoint]
+    ) -> None:
+        self._index_client.upsert_datapoints(
+            request=aiplatform_v1.UpsertDatapointsRequest(
+                index=self._index_name,
+                datapoints=datapoints,
+            )
+        )
 
     def remove_article(self, article_id: str, keep_ordinals: int) -> None:
         """Remove stale datapoints for an article whose chunk count shrank.
@@ -119,13 +181,13 @@ class VectorIndex:
                     namespace="category_id", allow_list=[c.category_id or ""]
                 ),
                 aiplatform_v1.IndexDatapoint.Restriction(
-                    namespace="title", allow_list=[c.title[:300]]
+                    namespace="title", allow_list=[_truncate_bytes(c.title)]
                 ),
                 aiplatform_v1.IndexDatapoint.Restriction(
                     namespace="url", allow_list=[c.url or ""]
                 ),
                 aiplatform_v1.IndexDatapoint.Restriction(
-                    namespace="heading", allow_list=[c.heading[:300]]
+                    namespace="heading", allow_list=[_truncate_bytes(c.heading)]
                 ),
             ],
             crowding_tag=aiplatform_v1.IndexDatapoint.CrowdingTag(
@@ -148,7 +210,7 @@ class VectorIndex:
             ],
             return_full_datapoint=True,
         )
-        response = self._match_client.find_neighbors(request=request)
+        response = self._find_neighbors(request)
         results: list[dict[str, Any]] = []
         if not response.nearest_neighbors:
             return results
@@ -169,3 +231,9 @@ class VectorIndex:
                 }
             )
         return results
+
+    @vertex_retry
+    def _find_neighbors(
+        self, request: aiplatform_v1.FindNeighborsRequest
+    ) -> aiplatform_v1.FindNeighborsResponse:
+        return self._match_client.find_neighbors(request=request)

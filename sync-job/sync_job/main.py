@@ -155,8 +155,11 @@ def run_sync(skip_watermark: bool = False, limit: int | None = None) -> dict[str
             log.warning("article %s produced no chunks; skipping", article.id)
             continue
 
-        # 5. Embed this article's chunks
-        vectors = embedder.embed([c.text for c in chunks])
+        # 5. Embed this article's chunks. Passing the article title lets the
+        # embedding model fold title terms into the vector, so short
+        # title-shaped queries (e.g. "Canva preiss template") can match a
+        # chunk even when its body prose doesn't reuse those exact words.
+        vectors = embedder.embed([c.text for c in chunks], title=article.title)
 
         # 6. Collect chunks with citation metadata (upsert happens in batches
         # below, NOT per-article — Vector Search has a per-minute stream-update

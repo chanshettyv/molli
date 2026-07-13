@@ -50,3 +50,5 @@ build/
 
 # Ignore sensitive Postman environment files
 *.postman_environment.json
+
+.pdf
