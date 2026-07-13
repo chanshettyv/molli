@@ -7,7 +7,7 @@ module has no vocabulary dependency and receives lists as plain arguments.
 Call analysis_to_draft_fields() to get a dict of FieldConfidence | None values
 keyed by the make_draft() parameter names, then unpack it:
 
-    fields = analysis_to_draft_fields(analysis, settings.freshservice_hr_group_id)
+    fields = analysis_to_draft_fields(analysis)
     draft = make_draft(email=_fc(user_email, 0.99, "user-stated"), **fields)
 """
 
@@ -28,14 +28,14 @@ from app.cards.form_options import LOCATIONS, SYSTEM_ITEMS, more_detail_options
 _GROUP_LABEL_TO_ID: dict[str, int | None] = {
     "IT": 5000233136,
     "Ops": 5000233137,
-    "HR": None,  # resolved from settings.freshservice_hr_group_id at call time
+    "HR": None,  # Preiss has no HR group in Freshservice — HR routes via
+    # Gmail escalation to Sally, not a ticket group. Stays None.
     "general": None,
 }
 
 
 def analysis_to_draft_fields(
     analysis: TicketAnalysis,
-    hr_group_id: int | None = None,
 ) -> dict[str, FieldConfidence | None]:
     """Return make_draft() keyword args built from a TicketAnalysis.
 
@@ -43,10 +43,9 @@ def analysis_to_draft_fields(
     using difflib fuzzy matching. Fields that can't be resolved are returned
     as None so the dialog renders them blank for the user to fill in.
     """
-    # Group
+    # Group — HR resolves to None (no Freshservice HR group); dialog leaves
+    # the group blank for the user to pick.
     group_id: int | None = _GROUP_LABEL_TO_ID.get(analysis.group_label)
-    if analysis.group_label == "HR":
-        group_id = hr_group_id
 
     # System item — snap free text to exact vocabulary string
     snapped_system = snap_to_vocabulary(analysis.system_raw or "", SYSTEM_ITEMS)

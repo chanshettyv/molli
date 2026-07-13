@@ -401,8 +401,7 @@ async def chat_event(request: Request, background_tasks: BackgroundTasks) -> dic
             space_id = event.get("space", {}).get("name", "unknown")
             history = request.app.state.conversations.get_recent(space_id)
             analysis = await analyze_for_ticket(history, user_question)
-            settings = get_settings()
-            fields = analysis_to_draft_fields(analysis, settings.freshservice_hr_group_id)
+            fields = analysis_to_draft_fields(analysis)
             draft = make_draft(
                 conversation_id=space_id,
                 email=_fc(user_email, 0.99, "user-stated"),
@@ -417,8 +416,7 @@ async def chat_event(request: Request, background_tasks: BackgroundTasks) -> dic
             space_id = event.get("space", {}).get("name", "unknown")
             history = request.app.state.conversations.get_recent(space_id)
             analysis = await analyze_for_ticket(history, user_question)
-            settings = get_settings()
-            fields = analysis_to_draft_fields(analysis, settings.freshservice_hr_group_id)
+            fields = analysis_to_draft_fields(analysis)
             draft = make_draft(
                 conversation_id=space_id,
                 email=_fc(user_email, 0.99, "user-stated"),
