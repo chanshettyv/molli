@@ -31,7 +31,7 @@ from molli_shared.schemas.factories import _fc, make_draft, make_empty_draft, ma
 from molli_shared.ticket_analysis import analyze_for_ticket
 from molli_shared.topic_detection import detect_topic_change
 
-from app.cards import dialog
+from app.cards import dialog, form_options
 from app.cards.answer_card import answer_message
 from app.cards.reset_card import reset_prompt_actions
 from app.cards.structured_requests import SPECS, build_ticket_fields
@@ -92,7 +92,6 @@ def _extract_form_inputs(event: dict[str, Any]) -> dict[str, Any]:
     return {
         "email": single("email"),
         "subject": single("subject"),
-        "group": single("group"),
         "affectedLocation": multi("affectedLocation"),
         "systemItem": single("systemItem"),
         "moreDetail": single("moreDetail"),
@@ -145,7 +144,7 @@ def _send_webhook_notification(
     text = (
         f"*{label} — Molli*\n"
         f"Employee: {user_name} ({user_email})\n"
-        f"Message: \"{user_message}\"\n\n"
+        f'Message: "{user_message}"\n\n'
         f"Please follow up with this employee directly."
     )
     try:
@@ -337,6 +336,12 @@ async def chat_event(request: Request, background_tasks: BackgroundTasks) -> dic
 
         if action == "submitNameDialog":
             inputs = _extract_form_inputs(event)
+            # Group isn't a visible widget — it travels as a hidden Submit
+            # button parameter set in dialog.open_dialog (Molli's guess, or
+            # the fallback group). See form_options.FALLBACK_GROUP.
+            inputs["group"] = common.get("parameters", {}).get("groupId") or str(
+                form_options.FALLBACK_GROUP["id"]
+            )
             log.info("dialog_submit_received", inputs=inputs)
 
             # Build + validate the payload. Strict schema raises on bad data.

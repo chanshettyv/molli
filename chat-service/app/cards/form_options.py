@@ -240,6 +240,12 @@ GROUPS: list[dict[str, object]] = [
     {"id": 5000339544, "name": "Preiss IQ"},
 ]
 
+# Group is no longer shown to the user in the ticket dialog — every ticket
+# still needs a group_id, so the backend sets it: Molli's inferred guess
+# (analysis_to_draft_fields / RequestSpec.group_id) wins when present,
+# otherwise this catch-all group is used.
+FALLBACK_GROUP: dict[str, object] = {"id": 5000340154, "name": "Ops + Mktg + IT + BI"}
+
 STATUSES: list[dict[str, object]] = [
     {"value": 2, "name": "Open"},
     {"value": 3, "name": "Pending"},

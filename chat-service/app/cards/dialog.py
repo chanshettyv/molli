@@ -165,7 +165,10 @@ def trigger_card() -> dict[str, Any]:
 
 def open_dialog(draft: TicketDraft) -> dict[str, Any]:
     """Response to the openInitialDialog click: push the IT issue intake dialog."""
-    sel_group = _str_val(draft.group_id)
+    # Group is not shown to the user — resolved here (Molli's guess, or the
+    # catch-all fallback) and threaded through as a hidden Submit parameter
+    # instead of a visible widget. See form_options.FALLBACK_GROUP.
+    effective_group_id = _str_val(draft.group_id) or str(form_options.FALLBACK_GROUP["id"])
     sel_system = _val(draft.original_system)
     sel_priority = _str_val(draft.priority)
     sel_locations = set(_val(draft.msf_affected_location) or [])
@@ -182,10 +185,6 @@ def open_dialog(draft: TicketDraft) -> dict[str, Any]:
     system_items = [
         {"text": item, "value": item, "selected": item == sel_system}
         for item in form_options.SYSTEM_ITEMS
-    ]
-    group_items = [
-        {"text": g["name"], "value": str(g["id"]), "selected": str(g["id"]) == sel_group}
-        for g in form_options.GROUPS
     ]
     priority_items = [
         {"text": p["name"], "value": str(p["value"]), "selected": str(p["value"]) == sel_priority}
@@ -214,14 +213,6 @@ def open_dialog(draft: TicketDraft) -> dict[str, Any]:
                                             "type": "SINGLE_LINE",
                                             "name": "subject",
                                             "value": _str_val(draft.subject),
-                                        }
-                                    },
-                                    {
-                                        "selectionInput": {
-                                            "name": "group",
-                                            "label": "Group",
-                                            "type": "DROPDOWN",
-                                            "items": group_items,
                                         }
                                     },
                                     {
@@ -285,14 +276,17 @@ def open_dialog(draft: TicketDraft) -> dict[str, Any]:
                                                                 {
                                                                     "key": "actionName",
                                                                     "value": "submitNameDialog",
-                                                                }
+                                                                },
+                                                                {
+                                                                    "key": "groupId",
+                                                                    "value": effective_group_id,
+                                                                },
                                                             ],
                                                             # Required fields — host blocks
                                                             # submit until these have values.
                                                             "requiredWidgets": [
                                                                 "email",
                                                                 "subject",
-                                                                "group",
                                                                 "affectedLocation",
                                                                 "systemItem",
                                                                 "priority",

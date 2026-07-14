@@ -56,6 +56,20 @@ def _selected(select_widget: dict[str, Any]) -> list[str]:
     return [it["value"] for it in select_widget["items"] if it.get("selected")]
 
 
+def _submit_button(resp: dict[str, Any]) -> dict[str, Any]:
+    """The Submit buttonList's button config, found anywhere in the widget tree."""
+    for w in _widgets(resp):
+        if "buttonList" in w:
+            return w["buttonList"]["buttons"][0]
+    raise AssertionError("submit button not found")
+
+
+def _group_id_param(resp: dict[str, Any]) -> str:
+    """The hidden groupId value threaded through the Submit button's action."""
+    params = _submit_button(resp)["onClick"]["action"]["parameters"]
+    return next(p["value"] for p in params if p["key"] == "groupId")
+
+
 # ---------------------------------------------------------------------------
 # Full draft — everything pre-filled
 # ---------------------------------------------------------------------------
@@ -71,11 +85,19 @@ def test_full_draft_prefills_text_inputs():
     assert fields["computerName"]["value"] == draft.computer_name_if_it_issue.value
 
 
-def test_full_draft_preselects_group_dropdown():
+def test_full_draft_group_not_shown_as_widget():
+    """Group is no longer a visible widget — it's threaded through as a
+    hidden Submit parameter instead. See form_options.FALLBACK_GROUP."""
     draft = make_draft()
     fields = _by_name(dialog.open_dialog(draft))
-    # group_id is an int in the draft; the widget value is the stringified id.
-    assert _selected(fields["group"]) == [str(draft.group_id.value)]
+    assert "group" not in fields
+
+
+def test_full_draft_group_id_passed_as_hidden_param():
+    draft = make_draft()
+    resp = dialog.open_dialog(draft)
+    # group_id is an int in the draft; the hidden param value is stringified.
+    assert _group_id_param(resp) == str(draft.group_id.value)
 
 
 def test_full_draft_preselects_priority_radio():
@@ -103,7 +125,7 @@ def test_int_fields_prefill_as_strings_not_ints():
     """Regression guard for the int->str boundary: widget values must be str."""
     draft = make_draft()
     fields = _by_name(dialog.open_dialog(draft))
-    for item in fields["group"]["items"] + fields["priority"]["items"]:
+    for item in fields["priority"]["items"]:
         assert isinstance(item["value"], str)
 
 
@@ -149,8 +171,16 @@ def test_empty_draft_all_text_inputs_blank():
 
 def test_empty_draft_no_selections():
     fields = _by_name(dialog.open_dialog(make_empty_draft()))
-    for name in ("group", "systemItem", "priority", "affectedLocation"):
+    for name in ("systemItem", "priority", "affectedLocation"):
         assert _selected(fields[name]) == []
+
+
+def test_empty_draft_group_id_falls_back():
+    """No group_id on the draft -> the hidden param uses the catch-all group."""
+    from app.cards import form_options
+
+    resp = dialog.open_dialog(make_empty_draft())
+    assert _group_id_param(resp) == str(form_options.FALLBACK_GROUP["id"])
 
 
 # ---------------------------------------------------------------------------
@@ -160,17 +190,12 @@ def test_empty_draft_no_selections():
 
 def test_required_widgets_unchanged():
     """Pre-fill must not alter the submit button's requiredWidgets contract."""
-    # find the submit button anywhere in the widget tree
-    submit = None
-    for w in _widgets(dialog.open_dialog(make_draft())):
-        if "buttonList" in w:
-            submit = w["buttonList"]["buttons"][0]
-    assert submit is not None
-    required = submit["onClick"]["action"]["requiredWidgets"]
+    required = _submit_button(dialog.open_dialog(make_draft()))["onClick"]["action"][
+        "requiredWidgets"
+    ]
     assert set(required) == {
         "email",
         "subject",
-        "group",
         "affectedLocation",
         "systemItem",
         "priority",
