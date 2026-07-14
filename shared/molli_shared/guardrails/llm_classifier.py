@@ -40,10 +40,11 @@ _SYSTEM_PROMPT = (
     "\n"
     "Reply FHA  if the message touches Fair Housing Act topics: race, "
     "religion, color, national origin, sex, gender identity, sexual "
-    "orientation, familial status, disability, protected classes, or "
-    "housing/tenant selection decisions.\n"
+    "orientation, familial status, disability, or protected classes.\n"
     "\n"
-    "Reply NONE for anything else."
+    "Reply NONE for: tenant screening policies, background checks, credit "
+    "requirements, income thresholds, criminal history screening, FCRA, "
+    "adverse action letters, state screening laws, or anything else."
 )
 
 _USER_PROMPT = "Message: {message}"

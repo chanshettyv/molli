@@ -22,14 +22,9 @@ _FHA_PATTERNS: list[str] = [
     r"\bprotected class(es)?\b",
     r"\bfair housing\b",
     r"\bfha\b",
-    # Tenant decision language
+    # Tenant decision language tied to protected classes
     r"\bdeny(ing)? (an? )?(applicant|tenant|renter)\b",
     r"\brefuse (to rent|an? applicant)\b",
-    r"\bscreening criter(ia|ion)\b",
-    r"\bapplicant denial\b",
-    r"\bdisqualif(y|ied|ying) (an? )?(applicant|tenant)\b",
-    r"\badverse action\b",
-    r"\bdenial (letter|notice|reason)\b",
     # FHA protected classes — any standalone mention triggers the guardrail;
     # Molli must never engage with these topics regardless of available info.
     r"\brace\b",
@@ -69,6 +64,14 @@ _FHA_PATTERNS: list[str] = [
 # Checked BEFORE trigger patterns; a match here always allows.
 _EXCLUSION_PATTERNS: list[str] = [
     r"\bgrace hill\b",  # training platform
+    # Tenant screening / FCRA — intentionally allowed through to RAG
+    r"\bscreening\b",
+    r"\bbackground (check|report)\b",
+    r"\bcredit (check|report|score|requirement)\b",
+    r"\bcriminal (history|background|record|conviction)\b",
+    r"\bincome (requirement|verification|threshold|ratio|multiplier|limit)\b",
+    r"\badverse action\b",
+    r"\bfcra\b",
     r"\bscreening (call|interview|meeting|session)\b",  # job interviews
     r"\bsexual harassment\b",  # HR topic, not FHA
     r"\breligious (holiday|accommodation|observance|leave|exemption)\b",  # HR/EEO
