@@ -41,7 +41,7 @@ _TIER1_PATTERNS: list[str] = [
     r"\bsomething'?s (on fire|burning)\b",
     r"\bfire broke out\b",
     r"\bbreak[- ]?in\b",
-    r"\bsomeone broke in\b",
+    r"\bsomeone broke in(to)?\b",
     r"\bintruder\b",
     r"\bunauthorized (person|individual|entry|access).{0,30}(property|building|office|unit)\b",
     r"\btrespassing\b",

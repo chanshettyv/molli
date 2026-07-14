@@ -27,7 +27,7 @@ _HARASSMENT_PATTERNS: list[str] = [
     r"\bharassing (me|us|staff|employees)\b",
     r"\bbeing harassed\b",
     r"\bunwanted (advances|touching|contact|comments)\b",
-    r"\bmade me uncomfortable\b",
+    r"\bmade me (feel )?uncomfortable\b",
     r"\btouched me (inappropriately|without permission)\b",
     r"\bsaid something (inappropriate|offensive|sexual)\b",
     r"\bcreating a hostile (work )?(environment|workplace)\b",
@@ -62,7 +62,7 @@ _RETALIATION_PATTERNS: list[str] = [
 _HOSTILE_WORKPLACE_PATTERNS: list[str] = [
     r"\bhostile (workplace|work environment|environment)\b",
     r"\bintimidating (work )?environment\b",
-    r"\bfeel (unsafe|threatened) at work\b",
+    r"\bfeel (unsafe|threatened|uncomfortable).{0,20}(at work|workplace)\b",
     r"\bmanager (is|was) (yelling|screaming|threatening|abusive)\b",
     r"\bverbally (abused|attacked|threatened) (at work|by my manager|by a coworker)\b",
     r"\bphysically (threatened|intimidated) at work\b",
