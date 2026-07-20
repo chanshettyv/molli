@@ -139,33 +139,30 @@ class EscalationGuardrail:
                 canned_response=CANNED_RESPONSE_TIER3,
             )
 
-        # Tier 3 — general human request (Freshservice ticket, no email to Sally)
+        # Tier 3 — general human request (let RAG pipeline show ticket button)
         if _is_tier3(message):
-            repeat_count = record_question(user_email, message)
+            record_question(user_email, message)
             return GuardrailVerdict(
-                action=Action.ESCALATE,
+                action=Action.ALLOW,
                 category="ESCALATION",
-                reason=f"Tier 3 escalation: explicit_human_request=true | repeat_count={repeat_count}",
-                canned_response=CANNED_RESPONSE_TIER3,
+                reason="Tier 3 escalation: explicit_human_request=true — passing to ticket flow",
             )
 
-        # Tier 2 — low confidence follow-up
+        # Tier 2 — low confidence follow-up (pass to RAG for another attempt)
         if _is_tier2_followup(message):
             return GuardrailVerdict(
-                action=Action.ESCALATE,
+                action=Action.ALLOW,
                 category="ESCALATION",
-                reason="Tier 2: low-confidence follow-up detected — offer Freshservice ticket",
-                canned_response=CANNED_RESPONSE_TIER2,
+                reason="Tier 2: low-confidence follow-up detected — passing to RAG",
             )
 
         # Repeat question check
         repeat_count = record_question(user_email, message)
         if repeat_count >= _REPEAT_THRESHOLD:
             return GuardrailVerdict(
-                action=Action.ESCALATE,
+                action=Action.ALLOW,
                 category="ESCALATION",
-                reason=f"Tier 3: repeat_question_count={repeat_count} >= threshold={_REPEAT_THRESHOLD}",
-                canned_response=CANNED_RESPONSE_TIER3,
+                reason=f"Tier 3: repeat_question_count={repeat_count} >= threshold={_REPEAT_THRESHOLD} — passing to ticket flow",
             )
 
         return GuardrailVerdict(
