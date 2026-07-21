@@ -34,18 +34,18 @@ async def test_mh_whats_the_point_of_process():
 async def test_mh_dont_want_to_be_here_for_meeting():
     g = MentalHealthGuardrail()
     v = await g.check("I don't want to be here for the audit on Friday.", EMAIL)
-    assert (
-        v.action == Action.ALLOW
-    ), f"Blocked on 'don't want to be here for': {v.reason}"
+    assert v.action == Action.ALLOW, (
+        f"Blocked on 'don't want to be here for': {v.reason}"
+    )
 
 
 @pytest.mark.asyncio
 async def test_mh_dont_want_to_be_here_during_inspection():
     g = MentalHealthGuardrail()
     v = await g.check("I don't want to be here during the inspection.", EMAIL)
-    assert (
-        v.action == Action.ALLOW
-    ), f"Blocked on 'don't want to be here during': {v.reason}"
+    assert v.action == Action.ALLOW, (
+        f"Blocked on 'don't want to be here during': {v.reason}"
+    )
 
 
 @pytest.mark.asyncio
@@ -79,18 +79,18 @@ async def test_mh_not_doing_okay_with_system():
         "I'm not doing okay with the new Entrata update, can someone walk me through it?",
         EMAIL,
     )
-    assert (
-        v.action == Action.ALLOW
-    ), f"Blocked on 'not doing okay with [system]': {v.reason}"
+    assert v.action == Action.ALLOW, (
+        f"Blocked on 'not doing okay with [system]': {v.reason}"
+    )
 
 
 @pytest.mark.asyncio
 async def test_mh_not_doing_well_on_metric():
     g = MentalHealthGuardrail()
     v = await g.check("Our occupancy is not doing well this quarter.", EMAIL)
-    assert (
-        v.action == Action.ALLOW
-    ), f"Blocked on 'not doing well [context]': {v.reason}"
+    assert v.action == Action.ALLOW, (
+        f"Blocked on 'not doing well [context]': {v.reason}"
+    )
 
 
 @pytest.mark.asyncio
@@ -114,9 +114,9 @@ async def test_osha_fire_safety_inspection():
     v = await g.check(
         "There's a fire safety inspection scheduled for next Tuesday.", EMAIL
     )
-    assert (
-        v.action == Action.ALLOW
-    ), f"Tier-1 ESCALATE on 'fire safety inspection': {v.reason}"
+    assert v.action == Action.ALLOW, (
+        f"Tier-1 ESCALATE on 'fire safety inspection': {v.reason}"
+    )
 
 
 @pytest.mark.asyncio
@@ -125,9 +125,9 @@ async def test_osha_fire_safety_meeting():
     v = await g.check(
         "We have a fire safety meeting at 10am, who should attend?", EMAIL
     )
-    assert (
-        v.action == Action.ALLOW
-    ), f"Tier-1 ESCALATE on 'fire safety meeting': {v.reason}"
+    assert v.action == Action.ALLOW, (
+        f"Tier-1 ESCALATE on 'fire safety meeting': {v.reason}"
+    )
 
 
 @pytest.mark.asyncio
@@ -136,9 +136,9 @@ async def test_osha_fire_extinguisher_question():
     v = await g.check(
         "Where do fire extinguishers need to be mounted on the property?", EMAIL
     )
-    assert (
-        v.action == Action.ALLOW
-    ), f"Tier-1 ESCALATE on 'fire extinguisher': {v.reason}"
+    assert v.action == Action.ALLOW, (
+        f"Tier-1 ESCALATE on 'fire extinguisher': {v.reason}"
+    )
 
 
 @pytest.mark.asyncio
@@ -170,18 +170,18 @@ async def test_fha_employee_disability_accommodation():
         "A new employee has a disability accommodation request, where do I send the paperwork?",
         EMAIL,
     )
-    assert (
-        v.action == Action.ALLOW
-    ), f"FHA blocked on employee disability accommodation: {v.reason}"
+    assert v.action == Action.ALLOW, (
+        f"FHA blocked on employee disability accommodation: {v.reason}"
+    )
 
 
 @pytest.mark.asyncio
 async def test_fha_religion_policy_question():
     g = FairHousingGuardrail()
     v = await g.check("What's our policy on religion in the workplace?", EMAIL)
-    assert (
-        v.action == Action.ALLOW
-    ), f"FHA blocked on religion policy question: {v.reason}"
+    assert v.action == Action.ALLOW, (
+        f"FHA blocked on religion policy question: {v.reason}"
+    )
 
 
 @pytest.mark.asyncio
@@ -190,9 +190,9 @@ async def test_fha_sex_on_employment_form():
     v = await g.check(
         "What do I fill in for sex on the new hire onboarding form?", EMAIL
     )
-    assert (
-        v.action == Action.ALLOW
-    ), f"FHA blocked on 'sex' in employment form context: {v.reason}"
+    assert v.action == Action.ALLOW, (
+        f"FHA blocked on 'sex' in employment form context: {v.reason}"
+    )
 
 
 @pytest.mark.asyncio
@@ -246,9 +246,9 @@ async def test_hr_intimidating_lease_clause():
         "One of the lease clauses looks intimidating to residents, how should I explain it?",
         EMAIL,
     )
-    assert (
-        v.action == Action.ALLOW
-    ), f"HR blocked on 'intimidating lease clause': {v.reason}"
+    assert v.action == Action.ALLOW, (
+        f"HR blocked on 'intimidating lease clause': {v.reason}"
+    )
 
 
 @pytest.mark.asyncio
