@@ -33,7 +33,7 @@ from molli_shared.topic_detection import detect_topic_change
 
 from app.cards import dialog, form_options
 from app.cards.answer_card import answer_message
-from app.cards.reset_card import reset_prompt_actions
+from app.cards.reset_card import RESET_PROMPT_MESSAGE, reset_prompt_actions
 from app.cards.structured_requests import SPECS, build_ticket_fields
 from app.cards.ticket_analysis_adapter import analysis_to_draft_fields
 from app.cards.ticket_mapper import build_ticket_payload
@@ -309,6 +309,7 @@ async def chat_event(request: Request, background_tasks: BackgroundTasks) -> dic
         if show_ticket_button:
             actions.append(create_ticket_button(ticket_seed, user_email))
         if topic_changed:
+            reply_text = f"{reply_text}\n\n{RESET_PROMPT_MESSAGE}"
             actions.extend(reset_prompt_actions())
         log.info("outgoing_reply", reply_text=reply_text)
         return answer_message(reply_text, actions=actions or None)
