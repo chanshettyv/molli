@@ -1,8 +1,7 @@
 """Cloud Run entrypoint for the Molli Google Chat service.
 
-Routes Google Chat events to the appropriate handler. Phase 0 scaffold:
-the endpoints exist, return placeholder responses, and have a health check.
-Real logic lands in Phase 1 and 2.
+Routes Google Chat events to the appropriate handler: guardrail chain, RAG
+answer pipeline, ticket dialogs, and conversation reset.
 """
 
 from __future__ import annotations
@@ -109,8 +108,9 @@ def _sender_email_from_event(event: dict[str, Any]) -> str:
 
 
 def _test_values_for(request_type: str, sender_email: str) -> dict[str, str]:
-    """Hardcoded collected values for the test triggers. Replaced by
-    Kautilya's collection step when #38 lands — same dict shape."""
+    """Hardcoded collected values for the test triggers, standing in for a
+    real field-collection step. Any real implementation should return the
+    same dict shape."""
     if request_type == "entrata_access":
         return {
             "requester": sender_email,
@@ -191,9 +191,7 @@ async def health() -> dict[str, str]:
 @app.post("/")
 async def chat_event(request: Request, background_tasks: BackgroundTasks) -> dict[str, Any]:
     event = await request.json()
-    log.info("received_chat_event", payload=event)
     event_type, message = _classify(event)
-    log.info("chat_event_received", event_type=event_type)
 
     if event_type == "MESSAGE":
         # Slash command arrives with the command metadata on the message.
@@ -261,11 +259,6 @@ async def chat_event(request: Request, background_tasks: BackgroundTasks) -> dic
             _intent_task = asyncio.create_task(classify_intent(gemini_query))
             gemini_query = await rewrite_followup(gemini_query, _history)
             intent_result = await _intent_task
-            log.info(
-                "intent_classified",
-                intent=intent_result.intent,
-                confidence=intent_result.confidence,
-            )
             rag = answer_with_citations(gemini_query, intent=intent_result.intent)
             if not rag.no_context:
                 reply_text = rag.formatted()
@@ -305,13 +298,12 @@ async def chat_event(request: Request, background_tasks: BackgroundTasks) -> dic
         if chain_result.append_to_response:
             reply_text = f"{reply_text}\n\n{chain_result.append_to_response}"
         ticket_seed = chain_result.message_to_gemini or user_text
-        actions: list[dict] = []
+        actions: list[dict[str, Any]] = []
         if show_ticket_button:
             actions.append(create_ticket_button(ticket_seed, user_email))
         if topic_changed:
             reply_text = f"{reply_text}\n\n{RESET_PROMPT_MESSAGE}"
             actions.extend(reset_prompt_actions())
-        log.info("outgoing_reply", reply_text=reply_text)
         return answer_message(reply_text, actions=actions or None)
 
     if event_type == "ADDED_TO_SPACE":

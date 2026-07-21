@@ -1,8 +1,5 @@
 """RAG answer pipeline: retrieve D360 chunks, ground Gemini on their text, cite.
 
-This is the heart of Phase 1 and the kickoff DoD line:
-"responses sourced directly from Document360 with citation links."
-
 Flow:
     query -> embed (RETRIEVAL_QUERY) -> Vector Search top-k neighbour ids
           -> ChunkStore.get_many(ids) -> actual chunk text
@@ -127,7 +124,7 @@ def _get_model() -> GenerativeModel:
     return _model
 
 
-@vertex_retry
+@vertex_retry  # type: ignore[untyped-decorator]
 def _generate(model: GenerativeModel, prompt: str, temperature: float) -> GenerationResponse:
     return model.generate_content(
         prompt, generation_config=GenerationConfig(temperature=temperature)
@@ -217,11 +214,8 @@ def answer_with_citations(
 
     # intent is accepted for forward-compatibility: once a D360
     # category->department map exists, retrieval will soft-boost chunks whose
-    # category matches the predicted department. Until then it is logged but
-    # NOT applied -- retrieval stays unscoped so a wrong intent can't hide the
-    # right answer. See docs/spikes/intent-classification.md.
-    if intent:
-        log.info("rag_intent_hint", intent=intent)
+    # category matches the predicted department. Until then it is unused --
+    # retrieval stays unscoped so a wrong intent can't hide the right answer.
 
     try:
         embedder, index, store = _get_retrieval()
